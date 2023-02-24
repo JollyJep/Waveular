@@ -19,19 +19,25 @@ class CUDA_Calculations:
         shape = pool.boundary
         img = shape.convert("RGBA")
         width, height = img.size
-        grid_x = np.array([])
-        grid_y = np.array([])
-        reflect = np.array([])
-        for x in range(width):
-            for y in range(height):
-                if img.getpixel((x, y))[0] < 5 and img.getpixel((x, y))[3] == 255:
-                    grid_x = np.append(grid_x, x)
-                    grid_y = np.append(grid_y, y)
-                    reflect = np.append(reflect, True)
-                elif img.getpixel((x, y))[0] >= 5 and img.getpixel((x, y))[3] == 255:
-                    grid_x = np.append(grid_x, x)
-                    grid_y = np.append(grid_y, y)
-                    reflect = np.append(reflect, False)
-        self.grid = np.array([grid_x, grid_y])
+        pixels = np.asarray(img)
+        grid_x = [1]
+        grid_y = [1]
+        reflect = [True]
+        self.grid = self.quick_pixel(width, height, pixels, grid_x, grid_y, reflect)
         print(self.grid)
 
+
+    @staticmethod
+    @njit
+    def quick_pixel(width, height, pixels, grid_x, grid_y, reflect):
+        for x in range(width):
+            for y in range(height):
+                if pixels[x, y][0] < 5 and pixels[x, y][3] == 255:
+                    grid_x.append(x)
+                    grid_y.append(y)
+                    reflect.append(True)
+                elif pixels[x, y][0] >= 5 and pixels[x, y][3] == 255:
+                    grid_x.append(x)
+                    grid_y.append(y)
+                    reflect.append(False)
+        return np.array([grid_x[1:], grid_y[1:]])
