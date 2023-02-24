@@ -1,4 +1,6 @@
 import numpy as np
+import PIL
+from PIL import Image
 
 class Pool_Simulation:
     def __init__(self, shape="circular", x_size=1.0, y_size=1.0, depth=1.0, viscosity=0.01, density=1000, precision=10000):
@@ -21,7 +23,7 @@ class Pool_Simulation:
         if self.shape in primitives:
             if self.shape == "circular":
                 theta = np.linspace(0, 2*np.pi, self.pool_precision)
-                self.boundary = self.circle_to_numpy(theta)
+                self.boundary = Image.open("./Grid_Images/Circle.png")
             if self.shape == "rectangle":
                 self.boundary = np.array([np.array([-self.x_size, -self.x_size, self.x_size, self.x_size, -self.x_size]), np.array([-self.y_size, self.y_size, self.y_size, -self.y_size, -self.y_size])])
         else:
