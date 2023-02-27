@@ -39,7 +39,7 @@ class grid_creation:
 
 
     @staticmethod
-    @njit()
+    @jit()
     def quick_pixel(width, height, pixels, grid_x, grid_y, reflect):
         for x in range(width):
             for y in range(height):

@@ -6,6 +6,7 @@ import scipy
 import pandas as pd
 from matplotlib import pyplot as plt
 
+
 class object_kinematics:
 
     def __init__(self, k_object="sphere", density=5000, x_scale=1, y_scale=1, rotation=np.array([0, 0, 0]), height=1, velocity=np.NaN, kinematics=True):
