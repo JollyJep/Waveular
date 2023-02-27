@@ -16,7 +16,7 @@ class CUDA_Calculations:
         return
 
 
-    def runner(self, output, pos_grid, shifted_pos, k, l0, block, grid, vector_difference, modulus):
+    def runner(self, output, pos_grid, shifted_pos, k, l0, block, grid, vector_difference, modulus, Force_local):
         self.Hookes_law[2,1](output, pos_grid, shifted_pos, k, l0, vector_difference, modulus, Force_local)
         print(output)
 
