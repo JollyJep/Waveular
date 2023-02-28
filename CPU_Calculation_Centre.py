@@ -16,7 +16,6 @@ class CPU_Calculations:
 
 
     def runner(self, output, pos_grid, k, l0, block, grid, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor):
-        #self.Hookes_law[grid,block](output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor)
         self.Hookes_law(output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width,
                                      height, coord_change, divisor)
         print(output)

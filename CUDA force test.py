@@ -1,4 +1,5 @@
 import CUDA_Calculation_Centre as ccc
+import CPU_Calculation_Centre as cpu
 import numpy as np
 from numba import cuda
 import numba
@@ -20,7 +21,8 @@ l0 = 0.5
 output = np.zeros(np.shape(Points))
 k = float(10)
 blockdim = (3, 3)
-griddim = (len(Points) // blockdim[0] + 1, len(Points[0]) // blockdim[1] + 1)
+griddim = (len(Points) // blockdim[0], len(Points[0]) // blockdim[1])
+print(griddim)
 vector_difference = np.zeros(3)
 modulus = np.array([0.0])
 Force_store = np.zeros(3)
@@ -30,7 +32,7 @@ height = 3
 x_scale = 3
 y_scale = 3
 divisor_w = 1/width * x_scale
-divisor_h =1 / height * y_scale
+divisor_h = 1 / height * y_scale
 divisor = np.array([divisor_w, divisor_h])
 coord_change = np.array([np.array([1, 0]), np.array([-1, 0]), np.array([0, 1]), np.array([0, -1]), np.array([1, 1]), np.array([-1, 1]), np.array([-1, -1]), np.array([1, -1])])
 cuda_test.runner(output, Points, k, l0, blockdim, griddim, vector_difference, modulus, Force_store, ref_grid, width, height, coord_change, divisor)
