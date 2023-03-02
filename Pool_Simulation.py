@@ -22,14 +22,9 @@ class Pool_Simulation:
         primitives = ["circular", "rectangle"]
         if self.shape in primitives:
             if self.shape == "circular":
-                theta = np.linspace(0, 2*np.pi, self.pool_precision)
                 self.boundary = Image.open("./Grid_Images/Circle.png")
             if self.shape == "rectangle":
                 self.boundary = np.array([np.array([-self.x_size, -self.x_size, self.x_size, self.x_size, -self.x_size]), np.array([-self.y_size, self.y_size, self.y_size, -self.y_size, -self.y_size])])
         else:
             print("Arbritary pools not yet implemented")
 
-    def circle_to_numpy(self, theta):
-        x = self.x_size*np.cos(theta)
-        y = self.y_size*np.sin(theta)
-        return np.array([x, y])
