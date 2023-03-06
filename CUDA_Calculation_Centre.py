@@ -16,15 +16,13 @@ class CUDA_Calculations:
         return
 
 
-    def runner(self, output, pos_grid, k, l0, block, grid, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor, velocity, c):
-        self.Hookes_law[block, grid](output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor, velocity, c)
-        #self.Hookes_law(output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width,
-        #                             height, coord_change, divisor)
-        print(output)
+    def runner(self, output, pos_grid, k, l0, block, grid, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c):
+        self.Hookes_law[block, grid](output, pos_grid, k, l0, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c)
+        #print(output)
 
     @staticmethod
-    @cuda.jit(debug=True)
-    def Hookes_law(output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor, velocity, c):
+    @cuda.jit()
+    def Hookes_law(output, pos_grid, k, l0, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c):
         i, j = cuda.grid(2)
         for repeat in range(8):
             if i > len(pos_grid[0]) or j > len(pos_grid[1]):
@@ -39,14 +37,13 @@ class CUDA_Calculations:
                 vector_difference[0] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][0] - pos_grid[i][j][0] #CUDA is not allowed to create new variables, hence separating vectors to copy x,y,z values instead
                 vector_difference[1] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][1] - pos_grid[i][j][1]
                 vector_difference[2] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][2] - pos_grid[i][j][2]
-            modulus[0] = (vector_difference[0] ** 2 + vector_difference[1] ** 2 + vector_difference[2] ** 2) ** (1/2)
-            Force_local[0] = k * (modulus[0] - l0) * 1/modulus[0] * vector_difference[0]
-            Force_local[1] = k * (modulus[0] - l0) * 1 / modulus[0] * vector_difference[1]
-            Force_local[2] = k * (modulus[0] - l0) * 1 / modulus[0] * vector_difference[2]
+            vector_difference[3] = (vector_difference[0] ** 2 + vector_difference[1] ** 2 + vector_difference[2] ** 2) ** (1/2)
+            Force_local[0] = k * (vector_difference[3] - l0[repeat]) * 1/vector_difference[3] * vector_difference[0]
+            Force_local[1] = k * (vector_difference[3] - l0[repeat]) * 1 / vector_difference[3] * vector_difference[1]
+            Force_local[2] = k * (vector_difference[3] - l0[repeat]) * 1 / vector_difference[3] * vector_difference[2]
             output[i][j][0] = output[i][j][0] + Force_local[0]
             output[i][j][1] = output[i][j][1] + Force_local[1]
             output[i][j][2] = output[i][j][2] + Force_local[2]
-
             if i > len(pos_grid[0]) or j > len(pos_grid[1]):
                 return
             if not ref_grid[i][j]:
@@ -65,4 +62,8 @@ class CUDA_Calculations:
             output[i][j][0] = output[i][j][0] + Force_local[0]
             output[i][j][1] = output[i][j][1] + Force_local[1]
             output[i][j][2] = output[i][j][2] + Force_local[2]
+            output[i][j][2] = output[i][j][2] + Force_local[2]
 
+
+        def weight_calc(mass, g):
+            return mass * g
