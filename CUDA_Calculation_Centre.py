@@ -1,7 +1,8 @@
 import numpy as np
-import numba
-from numba import jit
-from numba import cuda
+import pycuda.driver as cuda
+import pycuda.autoinit
+from pycuda.compiler import SourceModule
+
 import scipy
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -15,55 +16,50 @@ class CUDA_Calculations:
     def __init__(self):
         return
 
+    def runner(self, output, pos_grid, k, l0, vector_difference,  force_local, ref_grid, coord_change, divisor, velocity, c):
+        constants = np.array([k, l0, c])
+        print(pos_grid)
+        exit()
+        #Allocate gpu memory
+        output_gpu = cuda.mem_alloc(output.nbytes)
+        pos_grid_gpu = cuda.mem_alloc(pos_grid.nbytes)
+        constants_gpu = cuda.mem_alloc(constants.nbytes)
+        vector_difference_gpu = cuda.mem_alloc(vector_difference.nbytes)
+        force_local_gpu = cuda.mem_alloc(force_local.nbytes)
+        ref_grid_gpu = cuda.mem_alloc(ref_grid.nbytes)
+        coord_change_gpu = cuda.mem_alloc(coord_change.nbytes)
+        divisor_gpu = cuda.mem_alloc(divisor.nbytes)
+        velocity_gpu = cuda.mem_alloc(velocity.nbytes)
 
-    def runner(self, output, pos_grid, k, l0, block, grid, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c):
-        self.Hookes_law[block, grid](output, pos_grid, k, l0, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c)
-        #print(output)
+        #Copy variables from CPU RAM to VRAM
+        cuda.memcpy_htod(output_gpu, output)
+        cuda.memcpy_htod(pos_grid_gpu, pos_grid)
+        cuda.memcpy_htod(constants_gpu, constants)
+        cuda.memcpy_htod(vector_difference_gpu, vector_difference)
+        cuda.memcpy_htod(force_local_gpu, force_local)
+        cuda.memcpy_htod(ref_grid_gpu, ref_grid)
+        cuda.memcpy_htod(coord_change_gpu, coord_change)
+        cuda.memcpy_htod(divisor_gpu, divisor)
+        cuda.memcpy_htod(velocity_gpu, velocity)
 
-    @staticmethod
-    @cuda.jit()
-    def Hookes_law(output, pos_grid, k, l0, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c):
-        i, j = cuda.grid(2)
-        for repeat in range(8):
-            if i > len(pos_grid[0]) or j > len(pos_grid[1]):
-                return
-            if not ref_grid[i][j]:
-                return
-            if i+coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i+coord_change[repeat][0] > len(pos_grid[0]) - 1 or j + coord_change[repeat][1] > len(pos_grid[1]) - 1 or not ref_grid[i+coord_change[repeat][0]][j+coord_change[repeat][1]]:
-                vector_difference[0] = coord_change[repeat][0] * divisor[0]
-                vector_difference[1] = coord_change[repeat][1] * divisor[1]
-                vector_difference[2] = pos_grid[i][j][2]
-            else:
-                vector_difference[0] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][0] - pos_grid[i][j][0] #CUDA is not allowed to create new variables, hence separating vectors to copy x,y,z values instead
-                vector_difference[1] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][1] - pos_grid[i][j][1]
-                vector_difference[2] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][2] - pos_grid[i][j][2]
-            vector_difference[3] = (vector_difference[0] ** 2 + vector_difference[1] ** 2 + vector_difference[2] ** 2) ** (1/2)
-            Force_local[0] = k * (vector_difference[3] - l0[repeat]) * 1/vector_difference[3] * vector_difference[0]
-            Force_local[1] = k * (vector_difference[3] - l0[repeat]) * 1 / vector_difference[3] * vector_difference[1]
-            Force_local[2] = k * (vector_difference[3] - l0[repeat]) * 1 / vector_difference[3] * vector_difference[2]
-            output[i][j][0] = output[i][j][0] + Force_local[0]
-            output[i][j][1] = output[i][j][1] + Force_local[1]
-            output[i][j][2] = output[i][j][2] + Force_local[2]
-            if i > len(pos_grid[0]) or j > len(pos_grid[1]):
-                return
-            if not ref_grid[i][j]:
-                return
-            if i+coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i+coord_change[repeat][0] > len(velocity[0]) - 1 or j + coord_change[repeat][1] > len(velocity[1]) - 1 or not ref_grid[i+coord_change[repeat][0]][j+coord_change[repeat][1]]:
-                vector_difference[0] = velocity[i][j][0]
-                vector_difference[1] = velocity[i][j][1]
-                vector_difference[2] = velocity[i][j][2]
-            else:
-                vector_difference[0] = velocity[i][j][0] - velocity[i+coord_change[repeat][0]][j + coord_change[repeat][1]][0] #CUDA is not allowed to create new variables, hence separating vectors to copy x,y,z values instead
-                vector_difference[1] = velocity[i][j][1] - velocity[i+coord_change[repeat][0]][j + coord_change[repeat][1]][1]
-                vector_difference[2] = velocity[i][j][2] - velocity[i+coord_change[repeat][0]][j + coord_change[repeat][1]][2]
-            Force_local[0] = c * vector_difference[0]
-            Force_local[1] = c * vector_difference[0]
-            Force_local[2] = c * vector_difference[0]
-            output[i][j][0] = output[i][j][0] + Force_local[0]
-            output[i][j][1] = output[i][j][1] + Force_local[1]
-            output[i][j][2] = output[i][j][2] + Force_local[2]
-            output[i][j][2] = output[i][j][2] + Force_local[2]
+        force_calc = SourceModule(("""
+                
+        
+        
+        
+                """))
 
 
-        def weight_calc(mass, g):
-            return mass * g
+
+
+
+
+    #@staticmethod
+    #def hookes_law(output, pos_grid, k, l0, vector_difference,  Force_local, ref_grid, coord_change, divisor, velocity, c):
+
+
+
+
+
+    def weight_calc(mass, g):
+        return mass * g

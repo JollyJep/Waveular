@@ -2,7 +2,6 @@ import numpy as np
 import scipy
 import numba
 from numba import njit
-from numba import cuda
 import pandas as pd
 from matplotlib import pyplot as plt
 import Pool_Simulation as Pool_sim
@@ -18,7 +17,6 @@ def Pool_Simulation_Setup(shape="circular", x_dim=10, y_dim=10, z_dim=1, viscosi
 
 
 def grid_setup(Pool_boundaries):
-    print("here")
     grid = gcs.grid_creation(Pool_boundaries.x_size, Pool_boundaries.y_size)
     grid.grid_for_shape(Pool_boundaries)
     plot_x = []
@@ -40,12 +38,8 @@ def calculation_system(grid, pool, run_cuda, k, c):
     output = np.zeros(np.shape(grid.grid))
     blockdim = (224, 224)
     griddim = (len(grid.grid) // blockdim[0], len(grid.grid[0]) // blockdim[1])
-    print(griddim)
-    print(pool.x_size)
-    print(pool.y_size)
     print(np.shape(grid.grid))
     l0 = np.array([0.5 * (pool.x_size / len(grid.grid)), 0.5 * (pool.x_size / len(grid.grid)), 0.5 * (pool.y_size / len(grid.grid[0])), 0.5 * (pool.y_size / len(grid.grid[0])), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2)])
-    print(l0)
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float32)
     divisor_w = 1 / grid.width * pool.x_size
     divisor_h = 1 / grid.height * pool.y_size
@@ -54,16 +48,6 @@ def calculation_system(grid, pool, run_cuda, k, c):
     Force_store = np.array([0.0, 0.0, 0.0], dtype=np.float32)
     if run_cuda:
         calc = ccc.CUDA_Calculations()
-        vector_difference = cuda.to_device(vector_difference)
-        Force_store = cuda.to_device(Force_store)
-        output = cuda.to_device(output)
-        divisor = cuda.to_device(divisor)
-        ref_grid = cuda.to_device(grid.ref_grid)
-        grid = cuda.to_device(grid.grid)
-        velocity = cuda.to_device(velocity)
-        coord_change = cuda.to_device(coord_change)
-
-
     else:
         calc = cpu.CPU_Calculations()
     start = time.time()
