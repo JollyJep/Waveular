@@ -25,7 +25,7 @@ class grid_creation:
         ref_grid = np.full((self.width, self.height), True)
         grid_x, grid_y, ref_grid = self.quick_pixel(self.width, self.height, pixels, grid_x, grid_y, ref_grid)
         grid = np.zeros((self.width, self.height, 3))
-        divisor = np.zeros((self.width, self.height, 3), dtype=np.float64)
+        divisor = np.zeros((self.width, self.height, 3))
         for x in range(self.width):
             for y in range(self.width):
                 grid[x][y] = np.array([grid_x[x][y], grid_y[x][y], 0])
