@@ -49,7 +49,7 @@ def calculation_system(grid, pool, run_cuda, k, c):
     vector_difference = np.zeros(np.shape(output))
     modulus = np.zeros((len(output), len(output[0])))
     Force_store = np.zeros(np.shape(output))
-    l0 = np.array([0.5 * (pool.x_size / len(grid.grid)), 0.5 * (pool.x_size / len(grid.grid)), 0.5 * (pool.y_size / len(grid.grid[0])), 0.5 * (pool.y_size / len(grid.grid[0])), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2), np.sqrt((0.5 * (pool.x_size / len(grid.grid)))**2 + (0.5 * (pool.y_size / len(grid.grid[0])))**2)])
+    l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)])
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float32)
     ref_grid = grid.ref_grid
     if run_cuda:
