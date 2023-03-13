@@ -44,15 +44,18 @@ def calculation_system(grid, pool, run_cuda, k, c):
     k = 10
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)])
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)
+    acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
     if run_cuda:
-        calc = ccc.CUDA_Calculations()
+        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, k, l0, c, 10, np.array([0, 0, -9.81]), True)
     else:
         calc = cpu.CPU_Calculations()
     start = time.time()
-    for x in range(50):
-        calc.runner(grid.grid, k, l0, ref_grid, coord_change, divisor, velocity, c)
+    for x in range(3):
+        position = calc.runner(k, l0, ref_grid, coord_change, divisor, velocity, c)
+        np.savez_compressed("./Output/" + str(x), position)
     print(time.time() - start)
+
 
 if __name__ == "__main__":
     Pool_boundaries = Pool_Simulation_Setup()
