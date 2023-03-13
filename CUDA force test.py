@@ -38,6 +38,6 @@ divisor_w = 1/width * x_scale
 divisor_h = 1 / height * y_scale
 divisor = np.array([divisor_w, divisor_h])
 coord_change = np.array([np.array([1, 0]), np.array([-1, 0]), np.array([0, 1]), np.array([0, -1]), np.array([1, 1]), np.array([-1, 1]), np.array([-1, -1]), np.array([1, -1])])
-cuda_test.runner(output, Points, k, l0, blockdim, griddim, vector_difference, modulus, Force_store, ref_grid, coord_change, divisor, velocity, c)
+cuda_test.runner(Points, k, l0, ref_grid, coord_change, divisor, velocity, c)
 
 

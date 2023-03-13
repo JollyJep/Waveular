@@ -1,12 +1,5 @@
 import numpy as np
-import numba
-from numba import njit, jit
-from numba import cuda
-from numba.typed import List
-import scipy
-import pandas as pd
-from matplotlib import pyplot as plt
-import PIL
+from numba import njit, jit, prange
 
 
 class grid_creation:
@@ -36,9 +29,9 @@ class grid_creation:
 
 
     @staticmethod
-    @njit()
+    @njit(parallel=True)
     def quick_pixel(width, height, pixels, grid_x, grid_y, ref_grid):
-        for x in range(width):
+        for x in prange(width):
             for y in range(height):
                 if pixels[x, y][0] < 5 and pixels[x, y][3] == 255:
                     grid_x[x][y] = x

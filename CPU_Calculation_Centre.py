@@ -1,15 +1,9 @@
-import time
-import timeit
 import numpy as np
-import numba
-from numba import njit
-import scipy
-import pandas as pd
-from matplotlib import pyplot as plt
-import PIL
-import math
+from numba import njit, jit
 from numba import prange
-
+import sys
+import numpy
+numpy.set_printoptions(threshold=sys.maxsize)
 
 
 class CPU_Calculations:
@@ -17,54 +11,46 @@ class CPU_Calculations:
     def __init__(self):
         return
 
+    def runner(self, pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c):
+        self.hookes_law(pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c)
 
-    def runner(self, output, pos_grid, k, l0, block, grid, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor, velocity, c):
-        self.Hookes_law(output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width,height, coord_change, divisor, velocity, c)
-        print(len(output[0]) * len(output[1]))
+    def hookes_law(self, pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c):
+        # Define shifting array
+        shift_pos = self.quick_shift(pos_grid, coord_change, ref_grid, divisor)
+        # Define arrays
+        k = np.full(np.shape(pos_grid), k)
+        l0 = np.array(l0)
+        resultant_force = np.zeros(np.shape(pos_grid), dtype=np.float64)
+
+        shifted_pos = np.zeros((8, len(shift_pos[0]), len(shift_pos[1]), 3))
+        for repeat in range(8):
+            shifted_pos[repeat] = np.roll(shift_pos, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))
+
+        self.cpu_math(shifted_pos, pos_grid, resultant_force, k, l0)
+
 
     @staticmethod
-    @njit()
-    def Hookes_law(output, pos_grid, k, l0, vector_difference, modulus, Force_local, ref_grid, width, height, coord_change, divisor, velocity, c):
-        for i in prange(3):
-            for j in range(3):
-                for repeat in range(8):
-                    if i > len(pos_grid[0]) or j > len(pos_grid[1]):
-                        return
-                    if not ref_grid[i][j]:
-                        return
-                    if i+coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i+coord_change[repeat][0] > len(pos_grid[0]) - 1 or j + coord_change[repeat][1] > len(pos_grid[1]) - 1 or not ref_grid[i+coord_change[repeat][0]][j+coord_change[repeat][1]]:
-                        vector_difference[0] = coord_change[repeat][0] * divisor[0]
-                        vector_difference[1] = coord_change[repeat][1] * divisor[1]
-                        vector_difference[2] = pos_grid[i][j][2]
-                    else:
-                        vector_difference[0] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][0] - pos_grid[i][j][0] #CUDA is not allowed to create new variables, hence separating vectors to copy x,y,z values instead
-                        vector_difference[1] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][1] - pos_grid[i][j][1]
-                        vector_difference[2] = pos_grid[i+coord_change[repeat][0]][j + coord_change[repeat][1]][2] - pos_grid[i][j][2]
-                    modulus[0] = (vector_difference[0] ** 2 + vector_difference[1] ** 2 + vector_difference[2] ** 2) ** (1/2)
-                    Force_local[0] = k * (modulus[0] - l0) * 1/modulus[0] * vector_difference[0]
-                    Force_local[1] = k * (modulus[0] - l0) * 1 / modulus[0] * vector_difference[1]
-                    Force_local[2] = k * (modulus[0] - l0) * 1 / modulus[0] * vector_difference[2]
-                    output[i][j][0] = output[i][j][0] + Force_local[0]
-                    output[i][j][1] = output[i][j][1] + Force_local[1]
-                    output[i][j][2] = output[i][j][2] + Force_local[2]
+    @jit(parallel=False)
+    def cpu_math(shifted_pos, pos_grid, resultant_force, k, l0):
+        for repeat in prange(8):
+            vector_difference = shifted_pos[repeat][1: len(shifted_pos[0][0]) - 1, 1:len(shifted_pos[0][1]) - 1] - pos_grid
+            print(vector_difference[0][500])
+            modulus = np.sqrt(vector_difference[:, :, 0] ** 2 + vector_difference[:, :, 1] ** 2 + vector_difference[:, :, 2] ** 2)
+            modulus = np.expand_dims(modulus, 2)
+            force = k *(modulus - l0[repeat]) * 1 / modulus * vector_difference
+            resultant_force += force
+            return resultant_force
 
-                    if i > len(pos_grid[0]) or j > len(pos_grid[1]):
-                        return
-                    if not ref_grid[i][j]:
-                        return
-                    if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][
-                        0] > len(velocity[0]) - 1 or j + coord_change[repeat][1] > len(velocity[1]) - 1 or not \
-                    ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]:
-                        vector_difference[0] = velocity[i][j][0]
-                        vector_difference[1] = velocity[i][j][1]
-                        vector_difference[2] = velocity[i][j][2]
-                    else:
-                        vector_difference[0] = velocity[i][j][0] - velocity[i + coord_change[repeat][0]][j + coord_change[repeat][1]][0]  # CUDA is not allowed to create new variables, hence separating vectors to copy x,y,z values instead
-                        vector_difference[1] = velocity[i][j][1] - velocity[i + coord_change[repeat][0]][j + coord_change[repeat][1]][1]
-                        vector_difference[2] = velocity[i][j][2] - velocity[i + coord_change[repeat][0]][j + coord_change[repeat][1]][2]
-                    Force_local[0] = c * vector_difference[0]
-                    Force_local[1] = c * vector_difference[1]
-                    Force_local[2] = c * vector_difference[2]
-                    output[i][j][0] = output[i][j][0] + Force_local[0]
-                    output[i][j][1] = output[i][j][1] + Force_local[1]
-                    output[i][j][2] = output[i][j][2] + Force_local[2]
+
+    @staticmethod
+    @njit(parallel=True)
+    def quick_shift(pos_grid, coord_change, ref_grid, divisor):
+        shift_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))
+        for repeat in prange(8):
+            for i in range(len(pos_grid[0])):
+                for j in range(len(pos_grid[1])):
+                    if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][0] > len(pos_grid[0]) - 1 or j + coord_change[repeat][1] > len(pos_grid[1]) - 1 or not ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]:
+                        shift_pos[i + coord_change[repeat][0] + 1][j + coord_change[repeat][1] + 1] = coord_change[repeat] * divisor + pos_grid[i][j]
+
+        shift_pos[1: len(shift_pos[0]) - 1, 1:len(shift_pos[1]) - 1] = pos_grid
+        return shift_pos
