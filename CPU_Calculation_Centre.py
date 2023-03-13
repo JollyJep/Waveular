@@ -1,9 +1,7 @@
 import numpy as np
 from numba import njit, jit
 from numba import prange
-import sys
-import numpy
-numpy.set_printoptions(threshold=sys.maxsize)
+import concurrent.futures
 
 
 class CPU_Calculations:
@@ -26,20 +24,21 @@ class CPU_Calculations:
         for repeat in range(8):
             shifted_pos[repeat] = np.roll(shift_pos, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))
 
+        #repeats = [0,1,2,3,4,5,6,7]
+        #with concurrent.futures.ProcessPoolExecutor as executor:
+        #    futures = {executor.}
         self.cpu_math(shifted_pos, pos_grid, resultant_force, k, l0)
 
 
     @staticmethod
-    @jit(parallel=False)
-    def cpu_math(shifted_pos, pos_grid, resultant_force, k, l0):
-        for repeat in prange(8):
+    @jit(cache=True)
+    def cpu_math(shifted_pos, pos_grid, resultant_force, k, l0, repeat):
+        for repeat in range(8):
             vector_difference = shifted_pos[repeat][1: len(shifted_pos[0][0]) - 1, 1:len(shifted_pos[0][1]) - 1] - pos_grid
-            print(vector_difference[0][500])
             modulus = np.sqrt(vector_difference[:, :, 0] ** 2 + vector_difference[:, :, 1] ** 2 + vector_difference[:, :, 2] ** 2)
             modulus = np.expand_dims(modulus, 2)
-            force = k *(modulus - l0[repeat]) * 1 / modulus * vector_difference
-            resultant_force += force
-            return resultant_force
+            force = k * (modulus - l0[repeat]) * 1 / modulus * vector_difference
+            return force
 
 
     @staticmethod

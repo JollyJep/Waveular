@@ -50,7 +50,7 @@ def calculation_system(grid, pool, run_cuda, k, c):
     else:
         calc = cpu.CPU_Calculations()
     start = time.time()
-    for x in range(1):
+    for x in range(100):
         calc.runner(grid.grid, k, l0, ref_grid, coord_change, divisor, velocity, c)
     print(time.time() - start)
 
