@@ -6,13 +6,18 @@ from cupyx.profiler import benchmark
 
 class CUDA_Calculations:
 
-    def __init__(self):
-        return
+    def __init__(self, pool_mass=10, g=np.array([0, 0, -9.81])):
+        self.pool_mass = pool_mass
+        self.g = g
 
 
     def runner(self , pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c):
-        print(benchmark((self.hookes_law), (pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c), n_repeat=2))
-        #self.hookes_law(pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c)
+        #print(benchmark((self.hookes_law), (pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c), n_repeat=50))
+        self.hookes_law(pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c)
+        g_arr = np.zeros(np.shape(pos_grid))
+        g_arr[:, :] = self.g
+        self.resultant_force += self.weight(self.pool_mass, len(pos_grid[0]) * len(pos_grid[1]), g_arr)
+
 
 
     def hookes_law(self, pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c):
@@ -37,7 +42,7 @@ class CUDA_Calculations:
             modulus_gpu = cp.expand_dims(modulus_gpu, 2)
             force_gpu = k_gpu * (modulus_gpu - l0_gpu[repeat]) * 1/modulus_gpu * vector_difference_gpu
             resultant_force_gpu += force_gpu
-
+        self.resultant_force_gpu = resultant_force_gpu
 
 
     @staticmethod
@@ -53,3 +58,20 @@ class CUDA_Calculations:
 
         shift_pos[1: len(shift_pos[0]) - 1, 1:len(shift_pos[1]) - 1] = pos_grid
         return shift_pos
+
+
+    @staticmethod
+    @njit()
+    def weight(pool_mass, particle_number, g):
+        return pool_mass/particle_number * g
+
+
+
+    def verlet(self, pos_grid, k, l0, ref_grid, coord_change, divisor, velocity, c, deltaT, acceleration, mass):
+        self.acceleration_gpu = cp.array(acceleration)
+        self.pos_grid_gpu = self.pos_grid_gpu + self.velocity_gpu * deltaT + 0.5 * self.acceleration_gpu * deltaT ** 2
+        mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * deltaT
+        self.hookes_law(pos_grid, k, l0, ref_grid, coord_change, divisor, mid_velocity_gpu, c)
+        self.resultant_force_gpu += self.weight_arry
+        acceleration_gpu = self.resultant_force_gpu/mass
+        velocity_gpu = mid_velocity_gpu + 0.5 * acceleration_gpu * deltaT
