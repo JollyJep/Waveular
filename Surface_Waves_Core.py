@@ -29,11 +29,11 @@ def grid_setup(Pool_boundaries):
                 plot_y.append(grid.grid[x][y][1])
     plt.scatter(plot_x, plot_y, s=2)
     plt.show()
-    calculation_system(grid, Pool_boundaries, True, 10, 2)
+    calculation_system(grid, Pool_boundaries, True, 10, 2, True)
 
 
 
-def calculation_system(grid, pool, run_cuda, k, c):
+def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
@@ -47,13 +47,29 @@ def calculation_system(grid, pool, run_cuda, k, c):
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
     if run_cuda:
-        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, k, l0, c, 10, np.array([0, 0, -9.81]), True)
+        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, k, l0, c, 10, np.array([0, 0, -9.81]), mega_arrays)
     else:
         calc = cpu.CPU_Calculations()
     start = time.time()
+    index_offset = 0
     for x in range(3):
         position = calc.runner(k, l0, ref_grid, coord_change, divisor, velocity, c)
-        np.savez_compressed("./Output/" + str(x), position)
+        if mega_arrays:
+            np.savez_compressed("./Output/mega_array_" + str(x), position)
+        else:
+            if x == 0:
+                data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)
+                data_output[x] = position
+            elif x + 1 % 25 == 0:
+                data_output[x - index_offset] = position
+                np.savez_compressed("./Output/mini_dat_" + str(index_offset/25), position)
+                data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)
+                index_offset += 25
+            else:
+                data_output[x - index_offset] = position
+    if not mega_arrays:
+        if data_output[0][0][0] != np.nan:
+            np.savez_compressed("./Output/mini_dat_" + str(index_offset/25), position)
     print(time.time() - start)
 
 
