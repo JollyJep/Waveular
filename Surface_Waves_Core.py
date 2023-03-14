@@ -11,7 +11,7 @@ import CUDA_Calculation_Centre as ccc
 import CPU_Calculation_Centre as cpu
 import time
 
-def Pool_Simulation_Setup(shape="circular", x_dim=10, y_dim=10, z_dim=1, viscosity=1, density=1):
+def Pool_Simulation_Setup(shape="circular", x_dim=1000, y_dim=1000, z_dim=1, viscosity=1, density=1):
     Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim, depth=z_dim, viscosity=viscosity, density=density)
     Pool_boundaries.pool_boundary_creator()
     return Pool_boundaries
@@ -52,8 +52,8 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
-    for x in range(3):
-        position = calc.runner(k, l0, ref_grid, coord_change, divisor, velocity, c)
+    for x in range(1):
+        position = calc.runner(k, l0, ref_grid, coord_change, divisor, c, 1)
         if mega_arrays:
             np.savez_compressed("./Output/mega_array_" + str(x), position)
         else:

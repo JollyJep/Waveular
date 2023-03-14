@@ -4,10 +4,14 @@ from numba import njit
 import scipy
 import pandas as pd
 from matplotlib import pyplot as plt
+import plotly as px
 import os
 import threading as th
 import multiprocessing as mp
 import queue
+import sys
+import numpy
+numpy.set_printoptions(threshold=sys.maxsize)
 
 
 def system_scanner():
@@ -39,27 +43,31 @@ def data_reader(data_hopper_1):
 
 def data_formatter_host(data_hopper_1, data_hopper_2):
     plotting = True
+    x=0
     while plotting:
+        x += 1
         data_mixed = data_hopper_1.get()
         print(type(data_mixed))
+        print(x)
         if type(data_mixed) == bool:
-            data_hopper_2.put(False)
+            #data_hopper_2.put(False)
+            exit()
         else:
             data = data_formatter(data_mixed)
-            data_hopper_2.put(data)
+            #data_hopper_2.put(data)
 
 #@njit()
 def data_formatter(data_mixed):
     data_z = data_mixed[:,:,:,0]
-    print(data_z[0][500, 500])
+    print(data_mixed[:,500,500])
     return data_z
 
 
 
 
 if __name__ == "__main__":
-    data_hopper_1 = queue.Queue(maxsize=4)
-    data_hopper_2 = queue.Queue(maxsize=4)
+    data_hopper_1 = queue.Queue(maxsize=3)
+    data_hopper_2 = queue.Queue(maxsize=3)
     data_loader_thread = th.Thread(target=data_reader, args=(data_hopper_1,))
     data_formatter_process = mp.Process(target=data_formatter_host, args=(data_hopper_1, data_hopper_2,))
     data_loader_thread.start()
