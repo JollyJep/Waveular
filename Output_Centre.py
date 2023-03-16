@@ -1,14 +1,15 @@
+import time
 import numpy as np
 import numba
 from numba import njit
 import scipy
 import pandas as pd
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import plotly as px
 import os
 import threading as th
 import multiprocessing as mp
-import queue
 import sys
 import numpy
 numpy.set_printoptions(threshold=sys.maxsize)
@@ -34,11 +35,36 @@ def data_reader(data_hopper_1):
         data_hopper_1.put(False)
 
 
+def data_plot_system(data_hopper_2):
 
-#def data_plot_system():
-#    global data_hopper_2
-#    global plotting
-#    while plotting:
+    plotting = True
+    while plotting:
+        data = data_hopper_2.get()
+        if type(data) != bool:
+            for x in range(7):
+                fig = plt.figure()
+                ax = fig.add_subplot(projection="3d")
+                ax.set(xlim3d=(0, 11), xlabel='X')
+                ax.set(ylim3d=(0, 11), ylabel='Y')
+                ax.set(zlim3d=(-0.2, 0.2), zlabel='Z')
+                lines = [ax.scatter(data[x, i, j, 0], data[x, i, j, 1], data[x, i, j, 2]) for i in range(10) for j in range(10)]
+                #ani = animation.FuncAnimation(fig, update_lines, len(data), fargs=(data, lines, ax), interval=1)
+                #plt.show()
+
+                plt.savefig(str(x)+".png")
+                plt.cla()
+            print("done")
+            exit()
+
+
+def update_lines(frame, data, lines, ax):
+    print(np.shape(data), data[frame][0,0,0])
+    for i in range(10):
+        for j in range(10):
+            x,y,z = data[frame][i, j, 0:1], data[frame][ i, j, 1:2], data[frame][ i, j, 2:]
+            lines[i * 10 + j]._offsets3d(x,y,z)
+    return lines
+
 
 
 def data_formatter_host(data_hopper_1, data_hopper_2):
@@ -47,30 +73,46 @@ def data_formatter_host(data_hopper_1, data_hopper_2):
     while plotting:
         x += 1
         data_mixed = data_hopper_1.get()
-        print(type(data_mixed))
-        print(x)
         if type(data_mixed) == bool:
-            #data_hopper_2.put(False)
-            exit()
+            data_hopper_2.put(False)
         else:
-            data = data_formatter(data_mixed)
+            data_hopper_2.put(data_mixed)
+            #data = data_formatter(data_mixed)
+            #print(data)
             #data_hopper_2.put(data)
 
-#@njit()
+@njit()
 def data_formatter(data_mixed):
-    data_z = data_mixed[:,:,:,0]
-    print(data_mixed[:,500,500])
-    return data_z
+    x = []
+    y = []
+    z = []
+    for index, time_step in enumerate(data_mixed):
+        loc_x = []
+        loc_y = []
+        loc_z = []
+        for i in data_mixed[index]:
+            for j in i:
+                loc_x.append(j[0])
+                loc_y.append(j[1])
+                loc_z.append(j[2])
+        x.append(loc_x)
+        y.append(loc_y)
+        z.append(loc_z)
+    return x, y, z
 
 
 
 
 if __name__ == "__main__":
-    data_hopper_1 = queue.Queue(maxsize=3)
-    data_hopper_2 = queue.Queue(maxsize=3)
-    data_loader_thread = th.Thread(target=data_reader, args=(data_hopper_1,))
-    data_formatter_process = mp.Process(target=data_formatter_host, args=(data_hopper_1, data_hopper_2,))
-    data_loader_thread.start()
-    data_formatter_host(data_hopper_1, data_hopper_2)
-    #data_formatter_process.start()
 
+
+    data_hopper_1 = mp.Queue(maxsize=2)
+    data_hopper_2 = mp.Queue(maxsize=2)
+    data_loader_process = mp.Process(target=data_reader, args=(data_hopper_1,))
+    data_formatter_process = mp.Process(target=data_formatter_host, args=(data_hopper_1, data_hopper_2,))
+    data_plotter_process = mp.Process(target=data_plot_system, args=(data_hopper_2,))
+    data_loader_process.start()
+
+    data_formatter_process.start()
+    data_plotter_process.start()
+    data_formatter_host(data_hopper_1, data_hopper_2)
