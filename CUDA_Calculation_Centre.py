@@ -25,7 +25,7 @@ class CUDA_Calculations:
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_gpu = cp.array(self.mass_arry, dtype=np.float64)
         if mega_array == True:
-            mega_pos_grid = np.zeros((int((3000000000 * 0.75*0.00001)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
+            mega_pos_grid = np.zeros((int((3000000000 * 0.75*0.25*0.0005)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)
@@ -65,13 +65,12 @@ class CUDA_Calculations:
             modulus_gpu = cp.sqrt(vector_difference_gpu[:, :, 0] ** 2 + vector_difference_gpu[:, :, 1] ** 2 + vector_difference_gpu[:, :, 2] ** 2)
             modulus_gpu = cp.expand_dims(modulus_gpu, 2)
             resultant_force_gpu += self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) * 1/modulus_gpu * vector_difference_gpu - self.c_gpu * velocity_difference_gpu
-
         self.resultant_force_gpu = (resultant_force_gpu + self.weight_arry_gpu) * self.ref_grid_gpu
 
 
 
     @staticmethod
-    #@njit(parallel=True)
+    @njit(parallel=True)
     def quick_shift(pos_grid, coord_change, ref_grid, divisor, velocity):
         shift_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))
         velocity_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))
@@ -96,3 +95,4 @@ class CUDA_Calculations:
         self.hookes_law(k, l0, ref_grid, coord_change, divisor, mid_velocity_gpu, c)
         self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
         self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * deltaT
+
