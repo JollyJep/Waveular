@@ -41,19 +41,21 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     divisor_w = 1 / grid.width * Pool_boundaries.x_size
     divisor_h = 1 / grid.height * Pool_boundaries.y_size
     divisor = np.array([divisor_w, divisor_h, 0], dtype=np.float64)
-    k = 0.1
+    Cs = 0.1
+    Cd = 0.
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)], dtype=np.float64)
+    l0 *= 0.00001
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
     if run_cuda:
-        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, k, l0, c, coord_change, ref_grid, divisor, 10, np.array([0, 0, -9.81], dtype=np.float64), mega_arrays)
+        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, Cs, Cd, l0, c, coord_change, ref_grid, divisor, 10, np.array([0, 0, -9.81], dtype=np.float64), mega_arrays, 0.1)
     else:
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
     for x in range(1):
-        position = calc.runner(k, l0, ref_grid, coord_change, divisor, c, 0.00005)
+        position = calc.runner(coord_change)
         if mega_arrays:
             np.savez("./Output/mega_array_" + str(x), position)
         else:

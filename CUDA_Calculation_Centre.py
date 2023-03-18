@@ -10,7 +10,7 @@ numpy.set_printoptions(threshold=sys.maxsize)
 
 class CUDA_Calculations:
 
-    def __init__(self, pos_grid, velocity, acceleration, k, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True):
+    def __init__(self, pos_grid, velocity, acceleration, Cs, Cd, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1):
         self.pool_mass = pool_mass
         g_arr = np.zeros(np.shape(pos_grid), dtype=np.float64)
         g_arr[:, :] = g
@@ -18,12 +18,13 @@ class CUDA_Calculations:
         self.pos_grid_gpu = cp.array(pos_grid, dtype=cp.float64)
         self.velocity_gpu = cp.array(velocity, dtype=cp.float64)
         self.acceleration_gpu = cp.array(acceleration, dtype=np.float64)
-        self.k_gpu = cp.full(cp.shape(self.pos_grid_gpu), k, dtype=np.float64)
+        self.Cs_gpu = cp.full(cp.shape(self.pos_grid_gpu), Cs, dtype=np.float64)
+        self.Cd_gpu = cp.full(cp.shape(self.pos_grid_gpu), Cd, dtype=np.float64)
         self.l0_gpu = cp.array(l0, np.float64)
         self.c_gpu = cp.full(cp.shape(self.pos_grid_gpu), c, dtype=np.float64)
         self.weight_arry, self.mass_arry = self.weight(self.pool_mass, len(pos_grid[0]) * len(pos_grid[1]), g_arr)
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
-        self.mass_arry_gpu = cp.array(self.mass_arry, dtype=np.float64)
+        self.mass_arry_gpu = cp.full(cp.shape(self.pos_grid_gpu), self.mass_arry, dtype=np.float64)
         if mega_array == True:
             mega_pos_grid = np.zeros((int((3000000000 * 0.75*0.25*0.0005)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
@@ -34,19 +35,22 @@ class CUDA_Calculations:
         self.shift_velocity_gpu = cp.array(self.shift_velocity)
         self.ref_grid_gpu = cp.array(ref_grid)
         self.ref_grid_gpu = cp.expand_dims(self.ref_grid_gpu, 2)
+        self.deltaT = timestep
+        self.one_by_deltaT = cp.full(cp.shape(self.pos_grid_gpu), 1/timestep, dtype=np.float64)
 
-    def runner(self, k, l0, ref_grid, coord_change, divisor, c, deltaT):
+
+    def runner(self, coord_change):
         if self.mega_arrays:
             for index, array in enumerate(self.mega_pos_grid_gpu):
-                self.verlet(self.pos_grid, k, l0, ref_grid, coord_change, divisor, c, deltaT)
+                self.verlet(coord_change)
                 self.mega_pos_grid_gpu[index] = self.pos_grid_gpu
             return cp.asnumpy(self.mega_pos_grid_gpu)
         else:
-            self.verlet(self.pos_grid, k, l0, ref_grid, coord_change, divisor, c, deltaT)
+            self.verlet(coord_change)
             return
 
 
-    def hookes_law(self, k, l0, ref_grid, coord_change, divisor, velocity, c):
+    def hookes_law(self, coord_change):
         #Define shifting array
 
         #Define arrays on the gpu
@@ -64,7 +68,7 @@ class CUDA_Calculations:
             velocity_difference_gpu = shifted_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1: len(shift_velocity_gpu) - 1] - self.velocity_gpu
             modulus_gpu = cp.sqrt(vector_difference_gpu[:, :, 0] ** 2 + vector_difference_gpu[:, :, 1] ** 2 + vector_difference_gpu[:, :, 2] ** 2)
             modulus_gpu = cp.expand_dims(modulus_gpu, 2)
-            resultant_force_gpu += self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) * 1/modulus_gpu * vector_difference_gpu - self.c_gpu * velocity_difference_gpu
+            resultant_force_gpu += (self.one_by_deltaT ** 2 * (modulus_gpu - self.l0_gpu[repeat]) * self.Cs_gpu * vector_difference_gpu / modulus_gpu + self.one_by_deltaT * velocity_difference_gpu * self.Cd_gpu) * self.mass_arry_gpu
         self.resultant_force_gpu = (resultant_force_gpu + self.weight_arry_gpu) * self.ref_grid_gpu
 
 
@@ -89,10 +93,10 @@ class CUDA_Calculations:
 
 
 
-    def verlet(self, pos_grid, k, l0, ref_grid, coord_change, divisor, c, deltaT):
-        mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * deltaT
-        self.pos_grid_gpu = self.pos_grid_gpu + mid_velocity_gpu * deltaT
-        self.hookes_law(k, l0, ref_grid, coord_change, divisor, mid_velocity_gpu, c)
+    def verlet(self, coord_change):
+        mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
+        self.pos_grid_gpu = self.pos_grid_gpu + mid_velocity_gpu * self.deltaT
+        self.hookes_law(coord_change)
         self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
-        self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * deltaT
+        self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
 
