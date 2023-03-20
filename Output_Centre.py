@@ -1,16 +1,18 @@
 import time
+
+import matplotlib.colors
 import numpy as np
 from numba import njit, jit, prange
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
 import multiprocessing as mp
-import matplotlib.style as mplstyle
-mplstyle.use('fast')
 import vispy as vp
 import vispy.scene
 from vispy.scene import visuals
 import imageio
+from vispy.color import color_array as ca
+import colorsys
 
 
 
@@ -40,8 +42,10 @@ def data_plot_system(data_hopper_2):
     plotting = True
     global data
     global scatter
+    global canvas
     data = data_hopper_2.get()
-    canvas = vp.scene.SceneCanvas(keys='interactive', bgcolor='k', size=(1920, 1080))
+
+
     view = canvas.central_widget.add_view()
     view.camera = 'arcball'
     view.camera = vp.scene.TurntableCamera(up='z', fov=60)
@@ -50,17 +54,21 @@ def data_plot_system(data_hopper_2):
     xax = vp.scene.Axis(pos=[[0, 0], [1, 0]], tick_direction=(0, -1), axis_color='r', tick_color='r', text_color='r',
                      font_size=32, parent=view.scene, domain=(0, max_x), minor_tick_length=5, major_tick_length=10)
     yax = vp.scene.Axis(pos=[[0, 0], [0, 1]], tick_direction=(-1, 0), axis_color='g', tick_color='g', text_color='g',
-                     font_size=32, parent=view.scene, domain=(0, max_y), minor_tick_length=5, major_tick_length=10)
+                     font_size=32, parent=view.scene, domain=(0, max_y), minor_tick_length=50, major_tick_length=100)
     zax = vp.scene.Axis(pos=[[0, 0], [-1, 0]], tick_direction=(0, -1), axis_color='b', tick_color='b', text_color='b',
                      font_size=32, parent=view.scene, domain=(0, 1), minor_tick_length=5, major_tick_length=10)
     zax.transform = vp.scene.transforms.MatrixTransform()  # its acutally an inverted xaxis
     zax.transform.rotate(90, (0, 1, 0))  # rotate cw around yaxis
-    zax.transform.rotate(-45, (0, 0, 1))  # tick direction towards (-1,-1)
+    zax.transform.rotate(180, (0, 0, 1))
     scatter = vp.scene.visuals.Markers()
     view.add(scatter)
+    view.camera.transform.rotate(110, (0, 0, 1))
       # or try 'arcball'
     if type(data) != bool:
-        timer = vp.app.Timer(interval=500)
+        global colour_array
+        colour_array = quick_colours(data)
+        colour_array = ca.ColorArray(matplotlib.colors.hsv_to_rgb(colour_array))
+        timer = vp.app.Timer()
         timer.connect(update)
         timer.start(0.05)
 
@@ -69,24 +77,44 @@ def data_plot_system(data_hopper_2):
 
 
 
+@njit()
+def quick_colours(data):
+    colour_array = []
+    for i, _ in enumerate(data[0]):
+        for j, _ in enumerate(data[0, 0]):
+            colour_array.append(((i + j) / (len(data[0]) + len(data[0, 0])), 1, 1))
+    return colour_array
 
 def update(ev):
+    global start
     global data
     global frame
+    global colour_array
+    global canvas
+    global writer
     max_x = data[0][-1][0][0]
     max_y = data[0][0][-1][1]
-    divisor = np.full((21 * 21, 3), np.array([max_x, max_y, 1]))
+    divisor = np.full((len(data[0]) * len(data[0, 0]), 3), np.array([max_x, max_y, 1]))
     local_data =accelerated_formatting(data, divisor, frame)
-    scatter.set_data(local_data, edge_width=0, face_color=(1, 1, 1, .5), size=5, symbol='o')
-    if frame < len(data):
+    scatter.set_data(local_data, edge_width=0, face_color=colour_array, size=5, symbol='o')
+    if frame < len(data)-1:
         frame += 1
+        if start:
+            im = canvas.render()
+            writer.append_data(im)
     else:
         frame = 0
+        if start:
+            start = False
+            writer.close()
+            print("animated")
 
 
 
+@njit(parallel=True)
 def accelerated_formatting(data, divisor, frame):
     local_data = np.zeros((len(data[frame]) * len(data[frame][0]), 3))
+
     for i in prange(len(data[frame])):
         for j in prange(len(data[frame][0])):
             local_data[i * len(data[frame]) + j] = data[frame, i, j]
@@ -110,8 +138,10 @@ def data_formatter_host(data_hopper_1, data_hopper_2):
 
 
 if __name__ == "__main__":
+    start = True
     data = None
     frame = 0
+    colour_array = (1,1,1)
     scatter = vp.scene.visuals.Markers()
     data_hopper_1 = mp.Queue(maxsize=2)
     data_hopper_2 = mp.Queue(maxsize=2)
@@ -122,4 +152,6 @@ if __name__ == "__main__":
 
     data_formatter_process.start()
     #data_plotter_process.start()
+    canvas = vp.scene.SceneCanvas(keys='interactive', bgcolor='k', size=(2160, 1440))
+    writer = imageio.get_writer('animation.gif')
     data_plot_system(data_hopper_2)
