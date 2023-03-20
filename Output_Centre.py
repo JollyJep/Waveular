@@ -15,8 +15,6 @@ from vispy.color import color_array as ca
 import colorsys
 
 
-
-
 def system_scanner():
     path = "./Output"
     obj = os.scandir(path)
@@ -27,23 +25,26 @@ def system_scanner():
     return data_modules
 
 
-def data_reader(data_hopper_1):
+def data_reader(data_hopper_pos):
     plotting = True
     data_modules = system_scanner()
     while plotting:
         for data_module in data_modules:
             module = np.load("./Output/" + data_module)
-            data_hopper_1.put(module["arr_0"])
-        data_hopper_1.put(False)
+            if "pos" is data_module:
+                data_hopper_pos.put(module["arr_0"])
+            elif "epe" or "gpe" or "kin":
+                print("here")
+        data_hopper_pos.put(False)
         plotting = False
 
 
-def data_plot_system(data_hopper_2):
+def data_plot_system(data_hopper_pos):
     plotting = True
     global data
     global scatter
     global canvas
-    data = data_hopper_2.get()
+    data = data_hopper_pos.get()
 
 
     view = canvas.central_widget.add_view()
@@ -76,7 +77,6 @@ def data_plot_system(data_hopper_2):
         vp.app.run()
 
 
-
 @njit()
 def quick_colours(data):
     colour_array = []
@@ -84,6 +84,7 @@ def quick_colours(data):
         for j, _ in enumerate(data[0, 0]):
             colour_array.append(((i + j) / (len(data[0]) + len(data[0, 0])), 1, 1))
     return colour_array
+
 
 def update(ev):
     global start
@@ -121,37 +122,18 @@ def accelerated_formatting(data, divisor, frame):
     return local_data / divisor
 
 
-def data_formatter_host(data_hopper_1, data_hopper_2):
-    plotting = True
-    x = 0
-    while plotting:
-        x += 1
-        data_mixed = data_hopper_1.get()
-        if type(data_mixed) == bool:
-            data_hopper_2.put(False)
-            plotting = False
-        else:
-            data_hopper_2.put(data_mixed)
-            #data = data_formatter(data_mixed)
-            #print(data)
-            #data_hopper_2.put(data)
-
-
 if __name__ == "__main__":
     start = True
     data = None
     frame = 0
-    colour_array = (1,1,1)
+    colour_array = (1, 1, 1)
     scatter = vp.scene.visuals.Markers()
     data_hopper_1 = mp.Queue(maxsize=2)
-    data_hopper_2 = mp.Queue(maxsize=2)
+    data_hopper_pos = mp.Queue(maxsize=2)
     data_loader_process = mp.Process(target=data_reader, args=(data_hopper_1,))
-    data_formatter_process = mp.Process(target=data_formatter_host, args=(data_hopper_1, data_hopper_2,))
-    #data_plotter_process = mp.Process(target=data_plot_system, args=(data_hopper_2,))
+    #data_plotter_process = mp.Process(target=data_plot_system, args=(data_hopper_pos,))
     data_loader_process.start()
-
-    data_formatter_process.start()
     #data_plotter_process.start()
     canvas = vp.scene.SceneCanvas(keys='interactive', bgcolor='k', size=(2160, 1440))
     writer = imageio.get_writer('animation.gif')
-    data_plot_system(data_hopper_2)
+    data_plot_system(data_hopper_pos)

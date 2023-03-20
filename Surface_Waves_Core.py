@@ -12,7 +12,7 @@ import CPU_Calculation_Centre as cpu
 import time
 
 
-def Pool_Simulation_Setup(shape="circular", x_dim=1, y_dim=1, z_dim=1, viscosity=1, density=1):
+def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100, z_dim=1, viscosity=1, density=1):
     Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim, depth=z_dim, viscosity=viscosity, density=density)
     Pool_boundaries.pool_boundary_creator()
     return Pool_boundaries
@@ -38,28 +38,32 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
-    c = 2
+    c = 0.1
     divisor_w = 1 / grid.width * Pool_boundaries.x_size
     divisor_h = 1 / grid.height * Pool_boundaries.y_size
     divisor = np.array([divisor_w, divisor_h, 0], dtype=np.float64)
-    Cs = 0.2
-    Cd = 0.05
+    k = 500
     sigma = 10
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)], dtype=np.float64)
-    l0 *= 0.00001
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
+    deltaT=0.0001
     if run_cuda:
-        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, Cs, Cd, sigma, l0, c, coord_change, ref_grid, divisor, 1000, np.array([0, 0, -9.81], dtype=np.float64), mega_arrays, 0.01)
+        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5*2.5, np.array([0, 0, -9.81], dtype=np.float64), mega_arrays, deltaT)
     else:
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
     for x in range(1):
-        position = calc.runner(coord_change)
+        position, kinetics, gpe, epe = calc.runner(coord_change)
+        pool_attributes = np.array([deltaT, ref_grid])
         if mega_arrays:
-            np.savez("./Output/mega_array_" + str(x), position)
+            np.savez_compressed("./Output/mega_array_pos" + str(x), position)
+            np.savez_compressed("./Output/mega_array_kin" + str(x), kinetics)
+            np.savez_compressed("./Output/mega_array_gpe" + str(x), gpe)
+            np.savez_compressed("./Output/mega_array_epe" + str(x), epe)
+            np.savez_compressed("./Output/mega_array_atr" + str(x), pool_attributes)
         else:
             if x == 0:
                 data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)
