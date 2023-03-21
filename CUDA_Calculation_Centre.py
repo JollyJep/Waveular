@@ -50,7 +50,8 @@ class CUDA_Calculations:
             for index, array in enumerate(self.mega_pos_grid_gpu):
                 self.verlet(coord_change)
                 self.mega_pos_grid_gpu[index] = self.pos_grid_gpu
-            return cp.asnumpy(self.mega_pos_grid_gpu), cp.asnumpy(self.kinetics_gpu), cp.asnumpy(self.gpe_gpu), cp.asnumpy(self.epe_gpu)
+            self.energy_gpu = cp.array([self.kinetics_gpu, self.gpe_gpu, self.epe_gpu])
+            return cp.asnumpy(self.mega_pos_grid_gpu), cp.asnumpy(self.energy_gpu)
         else:
             self.verlet(coord_change)
             return
@@ -117,6 +118,6 @@ class CUDA_Calculations:
         self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
         self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
         self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)
-        self.gpe_gpu[self.frame] = self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
+        self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
         self.frame += 1
 

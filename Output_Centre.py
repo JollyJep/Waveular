@@ -12,6 +12,7 @@ from vispy.scene import visuals
 import imageio
 from vispy.color import color_array as ca
 import colorsys
+import cupy as cp
 
 
 def system_scanner():
@@ -25,16 +26,19 @@ def system_scanner():
     return data_modules
 
 
-def data_reader(data_export_pos):
+def data_reader(data_export_pos, data_export_eng):
     plotting = True
     data_modules = system_scanner()
     while plotting:
         for data_module in data_modules:
             module = np.load("./Output/" + data_module)
-            print(data_module)
             if "pos" in data_module:
+                data_export_eng.put(False)
                 data_export_pos.put(module["arr_0"])
+            elif "eng" in data_module:
+                data_export_eng.put(module["arr_0"])
         data_export_pos.put(False)
+
         plotting = False
 
 
@@ -120,6 +124,34 @@ def accelerated_formatting(data, divisor, frame):
             local_data[i * len(data[frame]) + j] = data[frame, i, j]
     return local_data / divisor
 
+def energy_plotter(data_export_eng):
+    plotting = True
+    frames = np.zeros(1)
+    while plotting:
+        all_energies = data_export_eng.get()
+        if not isinstance(all_energies, bool):
+            kinetics_gpu = cp.sum(all_energies[0], axis=(1,2))
+            gpe_gpu = cp.sum(all_energies[1], axis=(1,2))
+            epe_gpu = cp.sum(all_energies[2], axis=(1,2))
+            frames = np.linspace(max(frames), len(kinetics_gpu) + max(frames), len(kinetics_gpu))
+            if frames[0] == 0:
+                plt.plot(frames, cp.asnumpy(kinetics_gpu), label="Kinetic Energy", color="red")
+                plt.plot(frames, cp.asnumpy(gpe_gpu), label="Gravitational Potential Energy", color="lightblue")
+                plt.plot(frames, cp.asnumpy(epe_gpu), label="Elastic Potential Energy", color="darkblue")
+                plt.plot(frames, cp.asnumpy(epe_gpu + gpe_gpu), label="Potential Energy", color="blue")
+                plt.plot(frames, cp.asnumpy(kinetics_gpu + gpe_gpu + epe_gpu), label="Total Energy", color="purple")
+            else:
+                plt.plot(frames, cp.asnumpy(kinetics_gpu), color="red")
+                plt.plot(frames, cp.asnumpy(gpe_gpu), color="lightblue")
+                plt.plot(frames, cp.asnumpy(epe_gpu), color="darkblue")
+                plt.plot(frames, cp.asnumpy(epe_gpu + gpe_gpu), color="blue")
+                plt.plot(frames, cp.asnumpy(kinetics_gpu + gpe_gpu + epe_gpu), color="purple")
+        else:
+            plt.legend()
+            plt.show()
+            plotting = False
+
+
 
 if __name__ == "__main__":
     start = True
@@ -128,12 +160,12 @@ if __name__ == "__main__":
     colour_array = (1, 1, 1)
     scatter = vp.scene.visuals.Markers()
     data_export_pos = mp.Queue(maxsize=2)
-    data_export_eng = mp.Queue(maxsize=2)
-    data_loader_process = mp.Process(target=data_reader, args=(data_export_pos,))
-    #data_plotter_process = mp.Process(target=data_plot_system, args=(data_export_pos,))
+    data_export_eng = mp.Queue(maxsize=4)
+    data_loader_process = mp.Process(target=data_reader, args=(data_export_pos, data_export_eng, ))
+    plot_energy_process = mp.Process(target= energy_plotter, args=(data_export_eng, ))
     data_loader_process.start()
-
+    plot_energy_process.start()
     #data_plotter_process.start()
     canvas = vp.scene.SceneCanvas(keys='interactive', bgcolor='k', size=(1920, 1080))
-    writer = imageio.get_writer('animation.mp4')
+    writer = imageio.get_writer('animation.mp4', fps=30, quality=10)
     data_plot_system(data_export_pos)
