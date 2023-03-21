@@ -55,15 +55,15 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
-    for x in range(1):
+    for x in range(1000):
         position, kinetics, gpe, epe = calc.runner(coord_change)
         pool_attributes = np.array([deltaT, ref_grid])
         if mega_arrays:
-            np.savez_compressed("./Output/mega_array_pos" + str(x), position)
-            np.savez_compressed("./Output/mega_array_kin" + str(x), kinetics)
-            np.savez_compressed("./Output/mega_array_gpe" + str(x), gpe)
-            np.savez_compressed("./Output/mega_array_epe" + str(x), epe)
-            np.savez_compressed("./Output/mega_array_atr" + str(x), pool_attributes)
+            np.savez_compressed("./Output/mega_array_pos_" + str(x), position)
+            #np.savez_compressed("./Output/mega_array_kin_" + str(x), kinetics)
+            #np.savez_compressed("./Output/mega_array_gpe_" + str(x), gpe)
+            #np.savez_compressed("./Output/mega_array_epe_" + str(x), epe)
+            #np.savez_compressed("./Output/mega_array_atr_" + str(x), pool_attributes)
         else:
             if x == 0:
                 data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)

@@ -14,7 +14,7 @@ class CUDA_Calculations:
         self.pool_mass = pool_mass
         g_arr = np.zeros(np.shape(pos_grid), dtype=np.float64)
         g_arr[:, :] = g
-        self.g = g
+        self.g_gpu = g[2]
         self.pos_grid = pos_grid
         self.pos_grid_gpu = cp.array(pos_grid, dtype=cp.float64)
         self.velocity_gpu = cp.array(velocity, dtype=cp.float64)
@@ -26,7 +26,7 @@ class CUDA_Calculations:
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_gpu = cp.full(cp.shape(self.pos_grid_gpu), self.mass_arry, dtype=np.float64)
         if mega_array == True:
-            mega_pos_grid = np.zeros((int((1000000000)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
+            mega_pos_grid = np.zeros((int((750000000)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)
@@ -42,9 +42,9 @@ class CUDA_Calculations:
 
 
     def runner(self, coord_change):
-        self.kinetics_gpu = cp.zeros_like(self.mega_pos_grid_gpu[:, :, :, 0])
-        self.gpe_gpu = cp.zeros_like(self.mega_pos_grid_gpu[:, :, :, 0])
-        self.epe_gpu = cp.zeros_like(self.mega_pos_grid_gpu[:, :, :, 0])
+        self.kinetics_gpu = cp.zeros((len(self.mega_pos_grid_gpu), len(self.mega_pos_grid_gpu[0]), len(self.mega_pos_grid_gpu[0, 0])))
+        self.gpe_gpu = cp.zeros((len(self.mega_pos_grid_gpu), len(self.mega_pos_grid_gpu[0]), len(self.mega_pos_grid_gpu[0, 0])))
+        self.epe_gpu = cp.zeros((len(self.mega_pos_grid_gpu), len(self.mega_pos_grid_gpu[0]), len(self.mega_pos_grid_gpu[0, 0])))
         self.frame = 0
         if self.mega_arrays:
             for index, array in enumerate(self.mega_pos_grid_gpu):
@@ -71,9 +71,9 @@ class CUDA_Calculations:
             vector_difference_gpu = shifted_pos_gpu[1: len(shift_pos_gpu[0]) - 1, 1: len(shift_pos_gpu[1]) - 1] - self.pos_grid_gpu
             velocity_difference_gpu = shifted_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1: len(shift_velocity_gpu) - 1] - self.velocity_gpu
             modulus_gpu = cp.sqrt(vector_difference_gpu[:, :, 0] ** 2 + vector_difference_gpu[:, :, 1] ** 2 + vector_difference_gpu[:, :, 2] ** 2)
+            self.epe_gpu[self.frame] += 1/2 * self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) ** 2
             modulus_gpu = cp.expand_dims(modulus_gpu, 2)
             resultant_force_gpu += self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) * 1 / modulus_gpu * vector_difference_gpu + self.c_gpu * velocity_difference_gpu
-            self.epe_gpu[self.frame] += 1/2 * self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) ** 2
         self.resultant_force_gpu = (resultant_force_gpu + self.weight_arry_gpu) * self.ref_grid_gpu
 
 
@@ -117,6 +117,6 @@ class CUDA_Calculations:
         self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
         self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
         self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)
-        self.gpe_gpu[self.frame] = self.mass_arry * self.g * self.pos_grid_gpu[:, :, 2]
+        self.gpe_gpu[self.frame] = self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
         self.frame += 1
 
