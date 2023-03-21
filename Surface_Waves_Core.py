@@ -38,11 +38,11 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
-    c = 0.1
+    c = 0.005
     divisor_w = 1 / grid.width * Pool_boundaries.x_size
     divisor_h = 1 / grid.height * Pool_boundaries.y_size
     divisor = np.array([divisor_w, divisor_h, 0], dtype=np.float64)
-    k = 500
+    k = 3000
     sigma = 10
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)], dtype=np.float64)
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)
@@ -55,11 +55,16 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
-    for x in range(1000):
+    repeats = 30
+    for x in range(repeats):
         position, kinetics, gpe, epe = calc.runner(coord_change)
         pool_attributes = np.array([deltaT, ref_grid])
+        number = ""
+        while len(number) + len(str(x)) < len(str(repeats)):
+            number += "0"
+        number += str(x)
         if mega_arrays:
-            np.savez_compressed("./Output/mega_array_pos_" + str(x), position)
+            np.savez("./Output/mega_array_pos_" + number, position)
             #np.savez_compressed("./Output/mega_array_kin_" + str(x), kinetics)
             #np.savez_compressed("./Output/mega_array_gpe_" + str(x), gpe)
             #np.savez_compressed("./Output/mega_array_epe_" + str(x), epe)
