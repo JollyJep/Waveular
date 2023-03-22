@@ -26,7 +26,7 @@ class CUDA_Calculations:
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_gpu = cp.full(cp.shape(self.pos_grid_gpu), self.mass_arry, dtype=np.float64)
         if mega_array == True:
-            mega_pos_grid = np.zeros((int((750000000/10)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
+            mega_pos_grid = np.zeros((int((750000000/5)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)

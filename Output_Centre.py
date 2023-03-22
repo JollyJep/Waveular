@@ -29,13 +29,17 @@ def system_scanner():
 def data_reader(data_export_pos, data_export_eng):
     plotting = True
     data_modules = system_scanner()
+    eng = False
     while plotting:
         for data_module in data_modules:
             module = np.load("./Output/" + data_module)
             if "pos" in data_module:
-                data_export_eng.put(False)
+                if eng:
+                    data_export_eng.put(False)
+                eng = False
                 data_export_pos.put(module["arr_0"])
             elif "eng" in data_module:
+                eng = True
                 data_export_eng.put(module["arr_0"])
         data_export_pos.put(False)
 
@@ -94,28 +98,31 @@ def update(ev):
     global colour_array
     global canvas
     global writer
+    global data_pack
     if type(data) != bool:
+        #print(data_pack, frame)
         max_x = data[0][-1][0][0]
         max_y = data[0][0][-1][1]
         divisor = np.full((len(data[0]) * len(data[0, 0]), 3), np.array([max_x, max_y, 1]))
         local_data =accelerated_formatting(data, divisor, frame)
-        scatter.set_data(local_data, edge_width=0, face_color=colour_array, size=5, symbol='o')
+        scatter.set_data(local_data, edge_width=0.1, face_color=colour_array,edge_color=(1, 1, 1, 0.5), size=5, symbol='o')
         if frame < len(data)-1:
             frame += 1
-            if start:
-                im = canvas.render()
-                writer.append_data(im)
+            #if start:
+                #im = canvas.render()
+                #writer.append_data(im)
         else:
             frame = 0
             data = data_export_pos.get()
             if isinstance(data, bool):
                 start = False
-                writer.close()
+                #writer.close()
                 print("animated")
                 data = data_export_pos.get()
+            data_pack += 1
 
 
-@njit(parallel=True)
+@njit()
 def accelerated_formatting(data, divisor, frame):
     local_data = np.zeros((len(data[frame]) * len(data[frame][0]), 3))
 
@@ -157,9 +164,10 @@ if __name__ == "__main__":
     start = True
     data = None
     frame = 0
+    data_pack = 0
     colour_array = (1, 1, 1)
     scatter = vp.scene.visuals.Markers()
-    data_export_pos = mp.Queue(maxsize=2)
+    data_export_pos = mp.Queue(maxsize=4)
     data_export_eng = mp.Queue(maxsize=4)
     data_loader_process = mp.Process(target=data_reader, args=(data_export_pos, data_export_eng, ))
     plot_energy_process = mp.Process(target= energy_plotter, args=(data_export_eng, ))
@@ -167,5 +175,5 @@ if __name__ == "__main__":
     plot_energy_process.start()
     #data_plotter_process.start()
     canvas = vp.scene.SceneCanvas(keys='interactive', bgcolor='k', size=(1920, 1080))
-    writer = imageio.get_writer('animation.mp4', fps=30, quality=10)
+    #writer = imageio.get_writer('animation.mp4', fps=30, quality=10)
     data_plot_system(data_export_pos)
