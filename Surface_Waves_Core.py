@@ -38,12 +38,12 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
-    c = 0.005
+    c = 0.05
     divisor_w = 1 / grid.width * Pool_boundaries.x_size
     divisor_h = 1 / grid.height * Pool_boundaries.y_size
     divisor = np.array([divisor_w, divisor_h, 0], dtype=np.float64)
-    k = 5000
-    sigma = 10
+    k = 10000
+    sigma = 1000
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)], dtype=np.float64)
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
@@ -55,10 +55,9 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
-    repeats = 30
+    repeats = 50
     for x in range(repeats):
         position, energies = calc.runner(coord_change)
-        pool_attributes = np.array([deltaT, ref_grid])
         number = ""
         while len(number) + len(str(x)) < len(str(repeats)):
             number += "0"
@@ -66,7 +65,6 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
         if mega_arrays:
             np.savez_compressed("./Output/mega_array_pos_" + number, position)
             np.savez_compressed("./Output/mega_array_eng_" + number, energies)
-            np.savez_compressed("./Output/mega_array_atr_" + number, pool_attributes)
         else:
             if x == 0:
                 data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)
@@ -81,6 +79,8 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     if not mega_arrays:
         if data_output[0][0][0] != np.nan:
             np.savez_compressed("./Output/mini_dat_" + str(index_offset/25), position)
+    np.savez_compressed("./Output/0ref", ref_grid)
+    np.savez("./Output/1_time_step", deltaT)
     print(time.time() - start)
 
 
