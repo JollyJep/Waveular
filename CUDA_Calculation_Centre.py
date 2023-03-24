@@ -113,11 +113,12 @@ class CUDA_Calculations:
 
 
 
-    def verlet(self, coord_change):
+    def verlet(self, coord_change, debug_verlet=False):
         mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
         self.pos_grid_gpu = self.pos_grid_gpu + mid_velocity_gpu * self.deltaT
-        self.hookes_law(coord_change)
-        self.surface_tension()
+        if not debug_verlet:
+            self.hookes_law(coord_change)
+            self.surface_tension()
         self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
         self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
         self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)

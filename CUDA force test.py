@@ -1,10 +1,5 @@
 import CUDA_Calculation_Centre as ccc
-import CPU_Calculation_Centre as cpu
 import numpy as np
-from numba import cuda
-import numba
-print(cuda.gpus)
-cuda.detect()
 
 
 Points = np.zeros((3, 3, 3))
