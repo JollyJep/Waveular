@@ -3,7 +3,7 @@ import PIL
 from PIL import Image
 
 class Pool_Simulation:
-    def __init__(self, shape="circular", x_size=1.0, y_size=1.0, depth=1.0, viscosity=0.01, density=1000, precision=10000, debug = False):
+    def __init__(self, shape="circular", x_size=1.0, y_size=1.0, depth=1.0, viscosity=0.01, density=1000, precision=10000, debug=False):
         self.shape = shape
         self.x_size = x_size
         self.y_size = y_size
@@ -27,8 +27,8 @@ class Pool_Simulation:
             #if self.shape == "rectangle":
             #    self.boundary = np.array([np.array([-self.x_size, -self.x_size, self.x_size, self.x_size, -self.x_size]), np.array([-self.y_size, self.y_size, self.y_size, -self.y_size, -self.y_size])])
         elif self.debug:
-            self.boundary = Image.open("./Grid_Images/", self.shape, ".png")
+            self.boundary = Image.open("./Grid_Images/"+ self.shape + ".png")
         else:
             file = input("What is the file name, excluding extension?\n")
-            self.boundary = Image.open("./Grid_Images/", file, ".png")
+            self.boundary = Image.open("./Grid_Images/" + file + ".png")
 
