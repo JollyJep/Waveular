@@ -16,18 +16,8 @@ def grid_setup(Pool_boundaries):
     grid = gcs.grid_creation(Pool_boundaries.x_size, Pool_boundaries.y_size)
     grid.grid_for_shape(Pool_boundaries)
     return grid
-    #plot_x = []
-    #plot_y = []
-    #for x in range(grid.width):
-    #    for y in range(grid.height):
-    #        if grid.ref_grid[x][y] == True:
-    #            plot_x.append(grid.grid[x][y][0])
-    #            plot_y.append(grid.grid[x][y][1])
-    #plt.scatter(plot_x, plot_y, s=2)
-    #plt.show()
 
 
-@njit(parallel=True)
 def grid_to_png(ref_grid):
     test_png = np.zeros((len(ref_grid), len(ref_grid[0]), 4), dtype=np.uint8)
     for i in prange(len(ref_grid)):
