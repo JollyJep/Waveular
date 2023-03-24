@@ -43,7 +43,7 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
     divisor_h = 1 / grid.height * Pool_boundaries.y_size
     divisor = np.array([divisor_w, divisor_h, 0], dtype=np.float64)
     k = 10000
-    sigma = 1000
+    sigma = 300000
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])), (pool.y_size / len(grid.grid[0])), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2), np.sqrt(((pool.x_size / len(grid.grid)))**2 + ((pool.y_size / len(grid.grid[0])))**2)], dtype=np.float64)
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
@@ -55,7 +55,7 @@ def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
         calc = cpu.CPU_Calculations()
     start = time.time()
     index_offset = 0
-    repeats = 50
+    repeats = 1
     for x in range(repeats):
         position, energies = calc.runner(coord_change)
         number = ""

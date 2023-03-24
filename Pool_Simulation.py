@@ -19,12 +19,13 @@ class Pool_Simulation:
         )
 
     def pool_boundary_creator(self):
-        primitives = ["circular", "rectangle"]
+        primitives = ["circular"]
         if self.shape in primitives:
             if self.shape == "circular":
                 self.boundary = Image.open("./Grid_Images/Circle.png")
-            if self.shape == "rectangle":
-                self.boundary = np.array([np.array([-self.x_size, -self.x_size, self.x_size, self.x_size, -self.x_size]), np.array([-self.y_size, self.y_size, self.y_size, -self.y_size, -self.y_size])])
+            #if self.shape == "rectangle":
+            #    self.boundary = np.array([np.array([-self.x_size, -self.x_size, self.x_size, self.x_size, -self.x_size]), np.array([-self.y_size, self.y_size, self.y_size, -self.y_size, -self.y_size])])
         else:
-            print("Arbritary pools not yet implemented")
+            file = input("What is the file name, excluding extension?\n")
+            self.boundary = Image.open("./Grid_Images/", file, ".png")
 
