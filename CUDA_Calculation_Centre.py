@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit, prange
+from numba import njit, prange, jit
 import cupy as cp
 from cupyx.profiler import benchmark
 import time
@@ -33,7 +33,8 @@ class CUDA_Calculations:
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)
-        self.shift_pos, self.shift_velocity = self.quick_shift(cp.asnumpy(self.pos_grid_gpu), coord_change, ref_grid, divisor,cp.asnumpy(self.velocity_gpu))
+        self.shift_pos = self.quick_shift(cp.asnumpy(self.pos_grid_gpu), coord_change, ref_grid, divisor,cp.asnumpy(self.velocity_gpu))
+        self.shift_velocity = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))
         self.shift_pos_gpu = cp.array(self.shift_pos)
         self.shift_velocity_gpu = cp.array(self.shift_velocity)
         self.ref_grid_gpu = cp.array(ref_grid)
@@ -94,16 +95,15 @@ class CUDA_Calculations:
 
 
     @staticmethod
-    @njit(parallel=True)
+    #@jit(parallel=True)
     def quick_shift(pos_grid, coord_change, ref_grid, divisor, velocity):
         shift_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))
-        velocity_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))
         for repeat in prange(8):
             for i in range(len(pos_grid[0])):
                 for j in range(len(pos_grid[1])):
                     if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][0] > len(pos_grid[0]) - 1 or j + coord_change[repeat][1] > len(pos_grid[1]) - 1 or not ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]:
                             shift_pos[i + coord_change[repeat][0] + 1][j + coord_change[repeat][1] + 1] = coord_change[repeat] * divisor + pos_grid[i][j]
-        return shift_pos, velocity_pos
+        return shift_pos
 
 
     @staticmethod

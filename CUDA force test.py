@@ -20,7 +20,6 @@ Points[2][2] = np.array([3, 3, 0])
 ref_grid = np.full((3, 3), True)
 velocity = np.zeros(np.shape(Points), dtype=np.float64)
 acceleration = np.zeros(np.shape(Points), dtype=np.float64)
-velocity[1][1] = np.array(([1, 0, 0]))
 l0 = np.full(8, 0.5)
 output = np.zeros(np.shape(Points), dtype=np.float64)
 k = float(10)
@@ -38,8 +37,8 @@ c = 2
 deltaT = 0.1
 divisor_w = 1/width * x_scale
 divisor_h = 1 / height * y_scale
-divisor = np.array([divisor_w, divisor_h])
-coord_change = np.array([np.array([1, 0]), np.array([-1, 0]), np.array([0, 1]), np.array([0, -1]), np.array([1, 1]), np.array([-1, 1]), np.array([-1, -1]), np.array([1, -1])])
+divisor = np.array([divisor_w, divisor_h, 1])
+coord_change = np.array([np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]), np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
 calc = ccc.CUDA_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, 0], dtype=np.float64), True, deltaT, debug=True)
 position, energies = calc.runner(coord_change)
 expected_values_resultant_force = np.array([-6.167, 0, -54.318]) #Resultant force on the central particle as found manually
