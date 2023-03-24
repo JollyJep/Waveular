@@ -17,7 +17,7 @@ def grid_setup(Pool_boundaries):
     grid.grid_for_shape(Pool_boundaries)
     return grid
 
-
+@njit(parallel=True)
 def grid_to_png(ref_grid):
     test_png = np.zeros((len(ref_grid), len(ref_grid[0]), 4), dtype=np.uint8)
     for i in prange(len(ref_grid)):
@@ -29,13 +29,14 @@ def grid_to_png(ref_grid):
     return test_png
 
 
-@njit(parallel=True)
 def quick_analysis(test_png, original_png):
     num_pixels = len(original_png) * len(original_png[0])
     num_correct = 0
     for i in prange(len(original_png)):
         for j in range(len(original_png[0])):
-            if np.isclose(original_png[i, j], test_png[i, j], atol=20).all():
+            if np.isclose(original_png[i, j], test_png[i, j], atol=20).all():   #tests for red pixels in original and test image
+                num_correct += 1
+            elif (original_png[i,j] == np.array([0,0,0, 255])).all() and (test_png[i, j] == np.array([255,0,0,255])).all(): #tests for fully black border pixel particles
                 num_correct += 1
     return num_correct, num_pixels
 
@@ -47,8 +48,8 @@ def unit_test_main(shapes):
         test_png = grid_to_png(grid.ref_grid)
         original_png = np.asarray(pool_boundaries.boundary.convert("RGBA"))
         num_correct, num_pixels = quick_analysis(test_png, original_png)
-        print(f"\n----------------------------------------\nFor {shape}.png, the grid is correct in {num_correct} out of {num_pixels} resulting in {num_correct/num_pixels * 100}% of correct grid positions\n----------------------------------------\n")
+        print(f"\n----------------------------------------\nFor {shape}.png, the grid is correct in {num_correct} out of {num_pixels} pixels, resulting in {num_correct/num_pixels * 100}% of correct grid positions\n----------------------------------------\n")
 
 
-shapes = ["Circle"]
+shapes = ["Circle", "Squiggle"]
 unit_test_main(shapes)
