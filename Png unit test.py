@@ -39,7 +39,7 @@ def grid_to_png(ref_grid):
     return test_png
 
 
-#@njit(parallel=True)
+@njit(parallel=True)
 def quick_analysis(test_png, original_png):
     num_pixels = len(original_png) * len(original_png[0])
     num_correct = 0
