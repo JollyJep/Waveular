@@ -57,16 +57,15 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
     if run_cuda:    # Only use cuda, cpu implementation needs time that I do not have
         calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, settings.k, settings.sigma, l0, settings.c, coord_change, ref_grid,
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
-                                     settings.deltaT, settings.VRAM)
+                                     settings.deltaT, VRAM=settings.VRAM)
     else:
         calc = cpu.CPU_Calculations()   # Code not finished
     start = time.time()
     index_offset = 0    # For minor_arrays, not enough time to implement
-    repeats = 30
-    for x in range(repeats):    # Main loop
+    for x in range(settings.repeats):    # Main loop
         position, energies = calc.runner(coord_change)  #Runs calculations each repeat
         number = "" # For alphabetical I/O handling
-        while len(number) + len(str(x)) < len(str(repeats)):    # Makes sure that for a single run, all files are alphabetically in order by fixing number length. (Ie for 1000 repeats, the file for repeat 34 is 0034)
+        while len(number) + len(str(x)) < len(str(settings.repeats)):    # Makes sure that for a single run, all files are alphabetically in order by fixing number length. (Ie for 1000 repeats, the file for repeat 34 is 0034)
             number += "0"
         number += str(x)
         if mega_arrays:     # Saves all data to disk to use later. Saves in repeat chunks, which is good for both RAM management and power failure/crash data loss mitigation
