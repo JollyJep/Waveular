@@ -1,27 +1,18 @@
 import numpy as np
 import CUDA_Calculation_Centre as ccc
+import sys
 Points = np.zeros((3, 3, 3))
 Points[0][0] = np.array([10, 10, 20])
 Points[0][1] = np.array([10, 20, 10])
 Points[0][2] = np.array([10, 30, 10])
-Points[1][0] = np.array([20, 10, 30])
-Points[1][1] = np.array([21, 20, 10])
-Points[1][2] = np.array([20, 30, 10])
-Points[2][0] = np.array([30, 10, 20])
-Points[2][1] = np.array([30, 20, 40])
-Points[2][2] = np.array([30, 30, 10])
+
 ref_grid = np.full((3, 3), True)
 velocity = np.zeros(np.shape(Points), dtype=np.float64)
 velocity[0][0] = np.array([10, 0, 10])
-velocity[0][1] = np.array([0, 10, 10])
-velocity[0][2] = np.array([5, 5, 10])
-velocity[1][0] = np.array([5, 1, 0])
-velocity[1][1] = np.array([2, 2, -10])
-velocity[1][2] = np.array([7, 0, 0])
-velocity[2][0] = np.array([0, 7, 0])
-velocity[2][1] = np.array([-1, 0, 0])
-velocity[2][2] = np.array([0, -5, 0])
-acceleration = np.zeros(np.shape(Points), dtype=np.float64)
+velocity[0][1] = np.array([0, 10, -10])
+velocity[0][2] = np.array([5, 5, 0])
+
+acceleration = np.array([0, 0, -9.81], dtype=np.float64)
 l0 = np.full(8, 0.5)
 output = np.zeros(np.shape(Points), dtype=np.float64)
 k = float(10)
@@ -44,4 +35,19 @@ coord_change = np.array([np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0,
 calc = ccc.CUDA_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, -9.81], dtype=np.float64), True, deltaT, debug=True)
 for x in range(50):
     calc.verlet(coord_change, True)
-
+pos_expected = np.array([np.array([60, 10, -52.62]), np.array([10, 70, -162.6]), np.array([35, 55, -112.6])])
+vel_expected = np.array([np.array([10, 0, -39.05]), np.array([0, 10, -59.05]), np.array([5, 5, -49.05])])
+outputs = []
+for n, test in enumerate(pos_expected):
+    if np.isclose(test, calc.pos_grid[0, n], rtol=0.01).all():
+        outputs.append("within 1%")
+    else:
+        outputs.append("not within 1%")
+    if np.isclose(vel_expected[n], calc.velocity[0, n], rtol=0.01).all():
+        outputs.append("within 1%")
+    else:
+        outputs.append("not within 1%")
+print(f"\n----------------------------------------\nFor the first test, the position was {outputs[0]} of the predicted value, and the velocity was {outputs[1]} of the predicted value.\n\n"
+      f"For the second test, the position was {outputs[2]} of the predicted value, and the velocity was {outputs[3]} of the predicted value.\n\n"
+      f"For the third test, the position was {outputs[4]} of the predicted value, and the velocity was {outputs[5]} of the predicted value.\n\n----------------------------------------\n")
+print(calc.pos_grid[0])

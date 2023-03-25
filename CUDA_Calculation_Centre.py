@@ -4,8 +4,6 @@ import cupy as cp
 from cupyx.profiler import benchmark
 import time
 import sys
-import numpy
-numpy.set_printoptions(threshold=sys.maxsize)
 
 
 class CUDA_Calculations:
@@ -119,9 +117,12 @@ class CUDA_Calculations:
         if not debug_verlet:
             self.hookes_law(coord_change)
             self.surface_tension()
-        self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
+            self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu
         self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT
-        self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)
-        self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
-        self.frame += 1
-
+        if not debug_verlet:
+            self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)
+            self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
+            self.frame += 1
+        if debug_verlet:
+            self.pos_grid = cp.asnumpy(self.pos_grid_gpu)
+            self.velocity = cp.asnumpy(self.velocity_gpu)
