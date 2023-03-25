@@ -1,9 +1,4 @@
 import numpy as np
-import scipy
-import numba
-from numba import njit
-from numba import cuda
-import pandas as pd
 from matplotlib import pyplot as plt
 import Pool_Simulation as Pool_sim
 import Grid_Creation_System as gcs
@@ -12,7 +7,7 @@ import CPU_Calculation_Centre as cpu
 import time
 
 
-def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100, z_dim=1, viscosity=1, density=1):
+def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100, z_dim=1, viscosity=1, density=1): #Launches class that finds pool image and defines basic attributes
     Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim, depth=z_dim, viscosity=viscosity, density=density)
     Pool_boundaries.pool_boundary_creator()
     return Pool_boundaries
