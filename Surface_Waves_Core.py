@@ -8,28 +8,27 @@ import time
 
 
 def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100, z_dim=1, viscosity=1, density=1): #Launches class that finds pool image and defines basic attributes
-    Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim, depth=z_dim, viscosity=viscosity, density=density)
+    Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim)
     Pool_boundaries.pool_boundary_creator()
-    return Pool_boundaries
+    return Pool_boundaries # Returns object containing pool image in RAM
 
 
-def grid_setup(Pool_boundaries):
-    grid = gcs.grid_creation(Pool_boundaries.x_size, Pool_boundaries.y_size)
+def grid_setup(Pool_boundaries):    # Handles conversion from image to usable grid points in a numpy array. Also creates reference grid that indicates where the simulation will have walls
+    grid = gcs.grid_creation()
     grid.grid_for_shape(Pool_boundaries)
     plot_x = []
     plot_y = []
-    for x in range(grid.width):
+    for x in range(grid.width): # Creates format specifically used for plotting (ie np.size = [x_dim, y_dim, xyz vector] to 1d lists of x and y
         for y in range(grid.height):
             if grid.ref_grid[x][y] == True:
                 plot_x.append(grid.grid[x][y][0])
                 plot_y.append(grid.grid[x][y][1])
     plt.scatter(plot_x, plot_y, s=2)
     plt.show()
-    calculation_system(grid, Pool_boundaries, True, 10, 2, True)
+    calculation_system(grid, Pool_boundaries, run_cuda=True, mega_arrays=True)  #Due to lack of time run_cuda and mega_arrays must be True as CPU and lightweight alternatives were not developed further
 
 
-
-def calculation_system(grid, pool, run_cuda, k, c, mega_arrays):
+def calculation_system(grid, pool, run_cuda, mega_arrays):
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
