@@ -6,15 +6,15 @@ class Pool_Simulation:
     """
     ----------------------------------------------------------------
     Description:
-    Pool_Simulation is used to define the png used as the pool shape
+    Pool_Simulation is used to define the png used as the pool shape.
     ----------------------------------------------------------------
-    Inputs: shape (str) - Defines if a basic shape is used or a custom shape
-            x_size (float) - x length of simulation
-            y_size (float) - y length of simulation
+    Inputs: shape (str) - Defines if a basic shape is used or a custom shape.
+            x_size (float) - x length of simulation.
+            y_size (float) - y length of simulation.
             debug (bool) - Launches unit test environment if True, isolates
-                processes without automation
+                           processes without automation.
     ----------------------------------------------------------------
-    Outputs: self.boundary (PIL Image) - Image loaded from disk to memory for further usage
+    Outputs: self.boundary (PIL Image) - Image loaded from disk to memory for further usage.
     ----------------------------------------------------------------
     """
 

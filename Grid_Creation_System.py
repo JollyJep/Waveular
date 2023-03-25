@@ -4,16 +4,16 @@ from numba import njit, jit, prange
 
 class grid_creation:
     """
-        ----------------------------------------------------------------
-        Description:
-        Grid_Creation_System is used to convert from a png to a grid in the shape of the original png
-        ----------------------------------------------------------------
-        Inputs: pool (Object) - Contains initial attributes of the pool, including side dimensions and pool shape as an image
-        ----------------------------------------------------------------
-        Outputs: self.grid  (Numpy float64 array) - Array of points sitting in a grid (rectangular). Has format of np.size = [number of pixels in x, number of pixels in y, xyz position vector]
-                self.ref_grid (Numpy bool array) - Array corresponding to shape of image from pool, used to determine what particles are stationary and what needs to be simulated
-        ----------------------------------------------------------------
-        """
+    ----------------------------------------------------------------
+    Description:
+    Grid_Creation_System is used to convert from a png to a grid in the shape of the original png.
+    ----------------------------------------------------------------
+    Inputs: pool (Object) - Contains initial attributes of the pool, including side dimensions and pool shape as an image.
+    ----------------------------------------------------------------
+    Outputs: self.grid  (Numpy float64 array) - Array of points sitting in a grid (rectangular). Has format of np.size = [number of pixels in x, number of pixels in y, xyz position vector].
+             self.ref_grid (Numpy bool array) - Array corresponding to shape of image from pool, used to determine what particles are stationary and what needs to be simulated.
+    ----------------------------------------------------------------
+    """
 
     def grid_for_shape(self, pool):
         shape = pool.boundary  # Image from pool
