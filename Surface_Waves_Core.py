@@ -87,7 +87,7 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
         if data_output[0][0][0] != np.nan:
             np.savez_compressed("./Output/mini_dat_" + str(index_offset / 25), position)
     np.savez_compressed("./Output/0ref", ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
-    np.savez("./Output/1_time_step", deltaT)
+    np.savez("./Output/1_time_step", settings.deltaT)
     print(time.time() - start)  # Cuda performance diagnostics
 
 
