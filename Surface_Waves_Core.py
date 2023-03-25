@@ -4,6 +4,7 @@ import Pool_Simulation as Pool_sim
 import Grid_Creation_System as gcs
 import CUDA_Calculation_Centre as ccc
 import CPU_Calculation_Centre as cpu
+import Settings_hub
 import time
 
 
@@ -33,17 +34,16 @@ def grid_setup(
 
 
 def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function that runs the calculation classes
+    settings = Settings_hub.Settings()
+    settings.read_settings()
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]),
          np.array([1, -1, 0])])  # Defined as grid coordinates to nearest neighbours to particles in all 8 directions
-    c = 0.05  # Damping
     divisor_w = 1 / grid.width * Pool_boundaries.x_size
     divisor_h = 1 / grid.height * Pool_boundaries.y_size
     divisor = np.array([divisor_w, divisor_h, 0],
                        dtype=np.float64)  # Definition of grid coordinates to physics coordinates
-    k = 10000  # Spring constant between each and every particle. For stability dependent on deltaT
-    sigma = 10000  # Constant of surface tension
     l0 = np.array([(pool.x_size / len(grid.grid)), (pool.x_size / len(grid.grid)), (pool.y_size / len(grid.grid[0])),
                    (pool.y_size / len(grid.grid[0])),
                    np.sqrt(((pool.x_size / len(grid.grid))) ** 2 + ((pool.y_size / len(grid.grid[0]))) ** 2),
@@ -54,16 +54,15 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)  # Create empty velocity and acceleration arrays
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
-    deltaT = 0.0001 # Code time step, very, very dependent on k for stability
     if run_cuda:    # Only use cuda, cpu implementation needs time that I do not have
-        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid,
-                                     divisor, 100 * 100 * 0.01, np.array([0, 0, -9.81], dtype=np.float64), mega_arrays,
-                                     deltaT)
+        calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, settings.k, settings.sigma, l0, settings.c, coord_change, ref_grid,
+                                     divisor, settings.pool_mass, settings.g, settings.mega_arrays,
+                                     settings.deltaT, settings.VRAM)
     else:
         calc = cpu.CPU_Calculations()   # Code not finished
     start = time.time()
     index_offset = 0    # For minor_arrays, not enough time to implement
-    repeats = 50
+    repeats = 30
     for x in range(repeats):    # Main loop
         position, energies = calc.runner(coord_change)  #Runs calculations each repeat
         number = "" # For alphabetical I/O handling

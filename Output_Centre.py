@@ -15,11 +15,11 @@ import colorsys
 import cupy as cp
 
 
-def system_scanner():
+def system_scanner(): # Scans the Output folder and outputs the filenames, with extensions, for data_reader to use
     path = "./Output"
     obj = os.scandir(path)
     data_modules = []
-    for entry in obj:
+    for entry in obj:   #converts to list
         if entry.is_dir() or entry.is_file():
             data_modules.append(entry.name)
 
@@ -30,7 +30,6 @@ def data_reader(data_export_pos, data_export_eng, ref_block_transfer, time_swap)
     plotting = True
     data_modules = system_scanner()
     eng = False
-    global blo
     while plotting:
         for data_module in data_modules:
             module = np.load("./Output/" + data_module)

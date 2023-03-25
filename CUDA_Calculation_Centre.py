@@ -35,7 +35,7 @@ class CUDA_Calculations:
              self.energy_gpu (Cupy float64 array outputted as Numpy float64) - Contains all the different energies of all particles in SI units for the number of timesteps that fit as done in mega_pos_grid.
     ----------------------------------------------------------------
     """
-    def __init__(self, pos_grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1, debug=False):
+    def __init__(self, pos_grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1, debug=False, VRAM=100000):
         self.pool_mass = pool_mass
         g_arr = np.zeros(np.shape(pos_grid), dtype=np.float64)
         g_arr[:, :] = g
@@ -51,14 +51,14 @@ class CUDA_Calculations:
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_gpu = cp.full(cp.shape(self.pos_grid_gpu), self.mass_arry, dtype=np.float64)
         if mega_array and not debug:
-            mega_pos_grid = np.zeros((int((750000000/5)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)    #Defines size of mega_pos_grid, based on memory allocation
+            mega_pos_grid = np.zeros((int((VRAM)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)    #Defines size of mega_pos_grid, based on memory allocation
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         elif mega_array and debug:
             mega_pos_grid = np.zeros((1, len(pos_grid[0]), len(pos_grid[1]), 3),dtype=np.float64)
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)   # Defines empty resultant force array
-        self.shift_pos = self.quick_shift(cp.asNumpy(self.pos_grid_gpu), coord_change, ref_grid, divisor, cp.asNumpy(self.velocity_gpu))    # Creates shiftable array using Numba accelerated algorithm
+        self.shift_pos = self.quick_shift(cp.asnumpy(self.pos_grid_gpu), coord_change, ref_grid, divisor, cp.asnumpy(self.velocity_gpu))    # Creates shiftable array using Numba accelerated algorithm
         self.shift_velocity = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))  # Creates oversized velocity array, to allow for shifting for particles on the edge
         # Copy arrays to gpu (any cp.array is stored in gpu memory)
         self.shift_pos_gpu = cp.array(self.shift_pos)
@@ -81,7 +81,7 @@ class CUDA_Calculations:
                 self.verlet(coord_change)
                 self.mega_pos_grid_gpu[index] = self.pos_grid_gpu
             self.energy_gpu = cp.array([self.kinetics_gpu, self.gpe_gpu, self.epe_gpu])
-            return cp.asNumpy(self.mega_pos_grid_gpu), cp.asNumpy(self.energy_gpu)
+            return cp.asnumpy(self.mega_pos_grid_gpu), cp.asnumpy(self.energy_gpu)
         else:
             self.verlet(coord_change)
             return
@@ -152,5 +152,5 @@ class CUDA_Calculations:
             self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
             self.frame += 1
         if debug_verlet:
-            self.pos_grid = cp.asNumpy(self.pos_grid_gpu)   # Allow unit test numpy copies of arrays for easier access
-            self.velocity = cp.asNumpy(self.velocity_gpu)
+            self.pos_grid = cp.asnumpy(self.pos_grid_gpu)   # Allow unit test numpy copies of arrays for easier access
+            self.velocity = cp.asnumpy(self.velocity_gpu)

@@ -36,7 +36,7 @@ def quick_analysis(test_png, original_png): # Tests pixels in newly created imag
         for j in range(len(original_png[0])):
             if np.isclose(original_png[i, j], test_png[i, j], atol=20).all():   #tests for red pixels in original and test image
                 num_correct += 1
-            elif (original_png[i,j] == np.array([0,0,0, 255])).all() and (test_png[i, j] == np.array([255,0,0,255])).all(): #tests for fully black border pixel particles
+            elif (original_png[i, j] == np.array([0, 0, 0, 255])).all() and (test_png[i, j] == np.array([255, 0, 0, 255])).all(): #tests for fully black border pixel particles
                 num_correct += 1
     return num_correct, num_pixels
 
