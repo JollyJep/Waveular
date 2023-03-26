@@ -92,7 +92,7 @@ class CUDA_Calculations:
         shift_pos_gpu = self.shift_pos_gpu
         shift_velocity_gpu = self.shift_velocity_gpu
         shift_pos_gpu[1: len(shift_pos_gpu[0]) - 1, 1:len(shift_pos_gpu[1]) - 1] = self.pos_grid_gpu
-        shift_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1:len(shift_velocity_gpu[1]) - 1] = self.velocity_gpu
+        shift_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1:len(shift_velocity_gpu[1]) - 1] = self.mid_velocity_gpu
         resultant_force_gpu = cp.zeros(cp.shape(self.pos_grid_gpu))
 
         #Gpu math
@@ -100,7 +100,7 @@ class CUDA_Calculations:
             shifted_pos_gpu = cp.roll(shift_pos_gpu, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))    # Allows particles to psuedo-interact with neighbours, by simply opening neighbouring positional data to particle for Hooke's Law.
             shifted_velocity_gpu = cp.roll(shift_velocity_gpu, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))  # Allows particles to psuedo-interact with neighbours, by simply opening neighbouring velocity data to particle damping.
             vector_difference_gpu = shifted_pos_gpu[1: len(shift_pos_gpu[0]) - 1, 1: len(shift_pos_gpu[1]) - 1] - self.pos_grid_gpu # Position vector from particle to neighbour
-            velocity_difference_gpu = shifted_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1: len(shift_velocity_gpu) - 1] - self.velocity_gpu   # Velocity vector from particle to neighbour
+            velocity_difference_gpu = shifted_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1: len(shift_velocity_gpu) - 1] - self.mid_velocity_gpu   # Velocity vector from particle to neighbour
             modulus_gpu = cp.sqrt(vector_difference_gpu[:, :, 0] ** 2 + vector_difference_gpu[:, :, 1] ** 2 + vector_difference_gpu[:, :, 2] ** 2)  # Length in metres of the distance between the particle and its neighbour
             self.epe_gpu[self.frame] += 1/2 * self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) ** 2 # Add current elastic potential energy to this frame. (Frame only changes after 8 repeats)
             modulus_gpu = cp.expand_dims(modulus_gpu, 2)    # Float modulus to Cupy array of shape of pos_grid_gpu
@@ -118,6 +118,7 @@ class CUDA_Calculations:
         div_normal_vec_gpu = cp.gradient(normal_vec_gpu[:, :, 0], axis=0) +cp.gradient(normal_vec_gpu[:, :, 1], axis=1) # Divergence of normal vectors
         curvature_gpu = div_normal_vec_gpu / mod_grad_z_gpu # Find the curvature of the surface in 2 directions
         self.resultant_force_gpu -= self.sigma * curvature_gpu[:, :, cp.newaxis] * normal_vec_gpu # Calculate forces pointing in the direction of the local normals to the surface trying to make the surface as flat as possible
+
 
     @staticmethod # Numba is not friends with classes
     @njit(parallel=True) # Used to accelerate shift grid logic
@@ -139,13 +140,13 @@ class CUDA_Calculations:
 
 
     def verlet(self, coord_change, debug_verlet=False): # Simulation intergrator, chosen due to high energy conservation in kinematic situations, really Verlocity Verlet, based on https://www2.icp.uni-stuttgart.de/~icp/mediawiki/images/5/54/Skript_sim_methods_I.pdf
-        mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT    # Midpoint Velocity
-        self.pos_grid_gpu = self.pos_grid_gpu + mid_velocity_gpu * self.deltaT  # Position at time +deltaT
+        self.mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT    # Midpoint Velocity
+        self.pos_grid_gpu = self.pos_grid_gpu + self.mid_velocity_gpu * self.deltaT  # Position at time +deltaT
         if not debug_verlet:    # Used to specifically unit test Verlet with basic kinematics when debug_verlet = True
             self.hookes_law(coord_change)   # Force due to Hooke's law, weight and damping, done in this order as to make verlocity verlety work with velocity dependant forces, see https://www2.icp.uni-stuttgart.de/~icp/mediawiki/images/5/54/Skript_sim_methods_I.pdf
             self.surface_tension()  # Force due to cohesive forces
             self.acceleration_gpu = self.resultant_force_gpu/self.mass_arry_gpu # Acceleration at  time + deltaT
-        self.velocity_gpu = mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT # Velocity at time + deltaT
+        self.velocity_gpu = self.mid_velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT # Velocity at time + deltaT
         if not debug_verlet:
             self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)    # Update energies for this frame
             self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
