@@ -7,13 +7,13 @@ from numba import jit, njit, prange
 
 
 def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100, z_dim=1, viscosity=1, density=1, debug=True): #Initialises pool with debug images
-    Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim, depth=z_dim, viscosity=viscosity, density=density, debug=debug)
+    Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim, debug=debug)
     Pool_boundaries.pool_boundary_creator()
     return Pool_boundaries
 
 
 def grid_setup(Pool_boundaries): # Initialises and creates grid from pngs
-    grid = gcs.grid_creation(Pool_boundaries.x_size, Pool_boundaries.y_size)
+    grid = gcs.grid_creation()
     grid.grid_for_shape(Pool_boundaries)
     return grid
 

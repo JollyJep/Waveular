@@ -8,8 +8,7 @@ import Settings_hub
 import time
 
 
-def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100, z_dim=1, viscosity=1,
-                          density=1):  # Launches class that finds pool image and defines basic attributes
+def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100):  # Launches class that finds pool image and defines basic attributes
     Pool_boundaries = Pool_sim.Pool_Simulation(shape=shape, x_size=x_dim, y_size=y_dim)
     Pool_boundaries.pool_boundary_creator()
     return Pool_boundaries  # Returns object containing pool image in RAM
@@ -62,6 +61,8 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
         calc = cpu.CPU_Calculations()   # Code not finished
     start = time.time()
     index_offset = 0    # For minor_arrays, not enough time to implement
+    np.savez_compressed("./Output/0ref",ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
+    np.savez("./Output/1_time_step", settings.deltaT)
     for x in range(settings.repeats):    # Main loop
         position, energies = calc.runner(coord_change)  #Runs calculations each repeat
         number = "" # For alphabetical I/O handling
@@ -85,8 +86,7 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
     if not mega_arrays: # Minor_arrays
         if data_output[0][0][0] != np.nan:
             np.savez_compressed("./Output/mini_dat_" + str(index_offset / 25), position)
-    np.savez_compressed("./Output/0ref", ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
-    np.savez("./Output/1_time_step", settings.deltaT)
+
     print(time.time() - start)  # Cuda performance diagnostics
 
 
