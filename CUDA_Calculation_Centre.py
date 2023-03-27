@@ -121,7 +121,7 @@ class CUDA_Calculations:
 
 
     @staticmethod # Numba is not friends with classes
-    @njit() # Used to accelerate shift grid logic
+    @njit(parallel=True) # Used to accelerate shift grid logic
     def quick_shift(pos_grid, coord_change, ref_grid, divisor, velocity):
         shift_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))   # Add a border around the known live and dead particles of fake particles, used for position and velocities, but not simulated
         for repeat in prange(8):    # All 8 neighbour directions
