@@ -1,5 +1,6 @@
 import numpy as np
 import CUDA_Calculation_Centre as ccc
+import CPU_Calculation_Centre as cpu
 # Define point grid
 Points = np.zeros((3, 3, 3))
 Points[0][0] = np.array([1, 1, 0])
@@ -33,6 +34,7 @@ divisor_h = 1 / height * y_scale
 divisor = np.array([divisor_w, divisor_h, 1])
 coord_change = np.array([np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]), np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
 calc = ccc.CUDA_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, -9.81], dtype=np.float64), True, deltaT, debug=True)  # Initialise CUDA class
+calc_cpu = cpu.CPU_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, -9.81], dtype=np.float64), True, deltaT, debug=True)  # Initialise CPU class
 expected_array = np.zeros((5, 5, 3))    # Defining how the array should create a border of dead particles
 expected_array[0, 0] = np.array([0, 0, 0])
 expected_array[1, 0] = np.array([1, 0, 0])
@@ -51,9 +53,14 @@ expected_array[1, 4] = np.array([1, 4, 0])
 expected_array[2, 4] = np.array([2, 4, 0])
 expected_array[3, 4] = np.array([3, 4, 0])
 test_array = calc.quick_shift(Points, coord_change, ref_grid, divisor, velocity)    # Calling quick shift to create its array
+test_array_cpu = calc_cpu.quick_shift(Points, coord_change, ref_grid, divisor, velocity)
 if (test_array == expected_array).all():
-    print("Quick shift working nominally")
+    print("GPU quick shift working nominally")
 else:
-    print("Error in quick shift")
+    print("Error in GPU quick shift")
     print(test_array)
-
+if (test_array_cpu == expected_array).all():
+    print("CPU quick shift working nominally")
+else:
+    print("Error in CPU quick shift")
+    print(test_array_cpu)

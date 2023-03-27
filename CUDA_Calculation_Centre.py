@@ -117,7 +117,7 @@ class CUDA_Calculations:
         mod_grad_z_gpu = cp.sqrt(grad_x_gpu ** 2 + grad_y_gpu ** 2 + 1)
         div_normal_vec_gpu = cp.gradient(normal_vec_gpu[:, :, 0], axis=0) +cp.gradient(normal_vec_gpu[:, :, 1], axis=1) # Divergence of normal vectors
         curvature_gpu = div_normal_vec_gpu / mod_grad_z_gpu # Find the curvature of the surface in 2 directions
-        self.resultant_force_gpu += self.sigma * curvature_gpu[:, :, cp.newaxis] * normal_vec_gpu # Calculate forces pointing in the direction of the local normals to the surface trying to make the surface as flat as possible
+        self.resultant_force_gpu -= self.sigma * curvature_gpu[:, :, cp.newaxis] * normal_vec_gpu # Calculate forces pointing in the direction of the local normals to the surface trying to make the surface as flat as possible
 
 
     @staticmethod # Numba is not friends with classes

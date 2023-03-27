@@ -117,7 +117,7 @@ class CPU_Calculations:
         mod_grad_z_cpu = np.sqrt(grad_x_cpu ** 2 + grad_y_cpu ** 2 + 1)
         div_normal_vec_cpu = np.gradient(normal_vec_cpu[:, :, 0], axis=0) +np.gradient(normal_vec_cpu[:, :, 1], axis=1) # Divergence of normal vectors
         curvature_cpu = div_normal_vec_cpu / mod_grad_z_cpu # Find the curvature of the surface in 2 directions
-        self.resultant_force_cpu += self.sigma * curvature_cpu[:, :, np.newaxis] * normal_vec_cpu # Calculate forces pointing in the direction of the local normals to the surface trying to make the surface as flat as possible
+        self.resultant_force_cpu -= self.sigma * curvature_cpu[:, :, np.newaxis] * normal_vec_cpu # Calculate forces pointing in the direction of the local normals to the surface trying to make the surface as flat as possible
 
 
     @staticmethod # Numba is not friends with classes

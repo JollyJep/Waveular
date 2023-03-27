@@ -1,5 +1,6 @@
 import numpy as np
 import CUDA_Calculation_Centre as ccc
+import CPU_Calculation_Centre as cpu
 # Define initial positions
 Points = np.zeros((3, 3, 3))
 Points[0][0] = np.array([10, 10, 20])
@@ -31,9 +32,11 @@ divisor_w = 1/width * x_scale
 divisor_h = 1 / height * y_scale
 divisor = np.array([divisor_w, divisor_h, 1])
 coord_change = np.array([np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]), np.array([-1, 1, 0]), np.array([-1, -1, 0]), np.array([1, -1, 0])])
-calc = ccc.CUDA_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, -9.81], dtype=np.float64), True, deltaT, debug=True)
+calc = ccc.CUDA_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, -9.81], dtype=np.float64), True, deltaT, debug=True)  # Initialise GPU
+calc_cpu = cpu.CPU_Calculations(Points, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, 2.5 * 2.5, np.array([0, 0, -9.81], dtype=np.float64), True, deltaT, debug=True)   #Initialise CPU
 for x in range(50): # Run velocity Verlet for 5 seconds in 0.1 second chunks
     calc.verlet(coord_change, True)
+    calc_cpu.verlet(coord_change, True)
 pos_expected = np.array([np.array([60, 10, -52.62]), np.array([10, 70, -162.6]), np.array([35, 55, -112.6])])   # Manually calculated final positions and velocities, using SUVAT
 vel_expected = np.array([np.array([10, 0, -39.05]), np.array([0, 10, -59.05]), np.array([5, 5, -49.05])])
 outputs = []
@@ -46,6 +49,20 @@ for n, test in enumerate(pos_expected): #Test against expected
         outputs.append("within 1%")
     else:
         outputs.append("not within 1%")
-print(f"\n----------------------------------------\nFor the first test, the position was {outputs[0]} of the predicted value, and the velocity was {outputs[1]} of the predicted value.\n\n"
+for n, test in enumerate(pos_expected): #Test against expected
+    if np.isclose(test, calc_cpu.pos_grid[0, n], rtol=0.01).all():
+        outputs.append("within 1%")
+    else:
+        outputs.append("not within 1%")
+    if np.isclose(vel_expected[n], calc_cpu.velocity[0, n], rtol=0.01).all():
+        outputs.append("within 1%")
+    else:
+        outputs.append("not within 1%")
+
+print(f"\n----------------------------------------\nGPU Compute\n----------------------------------------\nFor the first test, the position was {outputs[0]} of the predicted value, and the velocity was {outputs[1]} of the predicted value.\n\n"
       f"For the second test, the position was {outputs[2]} of the predicted value, and the velocity was {outputs[3]} of the predicted value.\n\n"
-      f"For the third test, the position was {outputs[4]} of the predicted value, and the velocity was {outputs[5]} of the predicted value.\n\n----------------------------------------\n")
+      f"For the third test, the position was {outputs[4]} of the predicted value, and the velocity was {outputs[5]} of the predicted value.\n\n----------------------------------------\n"
+      f"CPU Compute\n----------------------------------------\n"
+      f"For the first test, the position was {outputs[6]} of the predicted value, and the velocity was {outputs[7]} of the predicted value.\n\n"
+      f"For the second test, the position was {outputs[8]} of the predicted value, and the velocity was {outputs[9]} of the predicted value.\n\n"
+      f"For the third test, the position was {outputs[10]} of the predicted value, and the velocity was {outputs[11]} of the predicted value.\n\n----------------------------------------\n")
