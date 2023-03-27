@@ -15,7 +15,7 @@ def Pool_Simulation_Setup(shape="circular", x_dim=100, y_dim=100):  # Launches c
 
 
 def grid_setup(
-        Pool_boundaries):  # Handles conversion from image to usable grid points in a numpy array. Also creates reference grid that indicates where the simulation will have walls
+        Pool_boundaries, settings):  # Handles conversion from image to usable grid points in a numpy array. Also creates reference grid that indicates where the simulation will have walls
     grid = gcs.grid_creation()
     grid.grid_for_shape(Pool_boundaries)
     plot_x = []
@@ -29,11 +29,10 @@ def grid_setup(
     plt.scatter(plot_x, plot_y, s=2)
     plt.show()
     calculation_system(grid, Pool_boundaries, run_cuda=True,
-                       mega_arrays=True)  # Due to lack of time run_cuda and mega_arrays must be True as CPU and lightweight alternatives were not developed further
+                       mega_arrays=True, settings=settings)  # Due to lack of time run_cuda and mega_arrays must be True as CPU and lightweight alternatives were not developed further
 
 
-def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function that runs the calculation classes
-    settings = Settings_hub.Settings()
+def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub function that runs the calculation classes
     settings.read_settings()
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
@@ -94,5 +93,6 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
 
 
 if __name__ == "__main__":
-    Pool_boundaries = Pool_Simulation_Setup()
-    grid_setup(Pool_boundaries)
+    settings = Settings_hub.Settings()
+    Pool_boundaries = Pool_Simulation_Setup(x_dim=settings.x_scale, y_dim=settings.y_scale)
+    grid_setup(Pool_boundaries, settings)

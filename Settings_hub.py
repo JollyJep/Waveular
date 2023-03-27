@@ -31,3 +31,5 @@ class Settings:
         else:
             self.CUDA = False
         self.integrater = dataframe[columns[12]][2].upper()
+        self.x_scale = float(dataframe[columns[13]][2])
+        self.y_scale = float(dataframe[columns[14]][2])
