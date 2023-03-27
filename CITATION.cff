@@ -1,0 +1,25 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Waveular - A Fluid Surface Simulator
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Cole
+    email: d.cole@lancaster.ac.uk
+repository-code: 'https://github.com/JollyJep/Waveular'
+abstract: >-
+  GPU accelerated fluid surface simulater written in python.
+  The surface of the water is simulated with a perticle grid
+  connected by springs.
+keywords:
+  - Python
+  - Fluid
+  - Simulation
+  - CUDA
+  - ROCm
+license: MIT
