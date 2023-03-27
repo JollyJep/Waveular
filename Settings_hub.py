@@ -25,3 +25,8 @@ class Settings:
         self.repeats = int(dataframe[columns[8]][2]) # Number of repeats
         self.deltaT = float(dataframe[columns[9]][2]) # Timestep
         self.g = np.array([0, 0, float(dataframe[columns[10]][2])]) # Acceleration due to gravity
+        if str(dataframe[columns[11]][
+                   2]).lower() == "true":  # Can't convert directly from string to bool, so need some logic
+            self.CUDA = True # If True use gpu
+        else:
+            self.CUDA = False
