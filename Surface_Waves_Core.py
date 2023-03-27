@@ -33,7 +33,6 @@ def grid_setup(
 
 
 def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub function that runs the calculation classes
-    settings.read_settings()
     coord_change = np.array(
         [np.array([1, 0, 0]), np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, -1, 0]), np.array([1, 1, 0]),
          np.array([-1, 1, 0]), np.array([-1, -1, 0]),
@@ -94,5 +93,6 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
 
 if __name__ == "__main__":
     settings = Settings_hub.Settings()
+    settings.read_settings()
     Pool_boundaries = Pool_Simulation_Setup(x_dim=settings.x_scale, y_dim=settings.y_scale)
     grid_setup(Pool_boundaries, settings)
