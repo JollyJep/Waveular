@@ -30,3 +30,4 @@ class Settings:
             self.CUDA = True # If True use gpu
         else:
             self.CUDA = False
+        self.integrater = dataframe[columns[12]][2].upper()

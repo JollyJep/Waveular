@@ -30,12 +30,13 @@ class CUDA_Calculations:
             self.mega_pos_grid_gpu (Cupy float64 array) - Multi-timestep array to reduce copy overhead.
             timestep/self.deltaT (float, float) - Timestep of simulation.
             debug (bool) - For unit testing.
+            integrator (string) - Choose numerical method
     ----------------------------------------------------------------
     Outputs: self.mega_pos_grid_gpu (Cupy float64 array outputted as Numpy float64) - Contains all the positions of all particles in SI cartesian coordinates for the number of timesteps that fit into the allocated gpu memory.
              self.energy_gpu (Cupy float64 array outputted as Numpy float64) - Contains all the different energies of all particles in SI units for the number of timesteps that fit as done in mega_pos_grid.
     ----------------------------------------------------------------
     """
-    def __init__(self, pos_grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1, debug=False, VRAM=100000):
+    def __init__(self, pos_grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1, debug=False, VRAM=100000, integrator="ER"):
         self.pool_mass = pool_mass
         g_arr = np.zeros(np.shape(pos_grid), dtype=np.float64)
         g_arr[:, :] = g
@@ -68,6 +69,7 @@ class CUDA_Calculations:
         self.deltaT = timestep
         self.one_by_deltaT = cp.full(cp.shape(self.pos_grid_gpu), 1/timestep, dtype=np.float64)
         self.sigma = sigma
+        self.integrator = integrator
 
 
 
@@ -78,7 +80,10 @@ class CUDA_Calculations:
         self.frame = 0
         if self.mega_arrays:    # Due to time constraints, only gpu compute is supported (CUDA/ROCm) hence self.mega_arrays must be True
             for index, array in enumerate(self.mega_pos_grid_gpu):
-                self.verlet(coord_change)
+                if self.integrator == "V":
+                    self.verlet(coord_change)
+                elif self.integrator == "ER":
+                    self.euler_richardson(coord_change)
                 self.mega_pos_grid_gpu[index] = self.pos_grid_gpu
             self.energy_gpu = cp.array([self.kinetics_gpu, self.gpe_gpu, self.epe_gpu])
             return cp.asnumpy(self.mega_pos_grid_gpu), cp.asnumpy(self.energy_gpu)
@@ -107,7 +112,6 @@ class CUDA_Calculations:
             resultant_force_gpu += self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) * 1 / modulus_gpu * vector_difference_gpu + self.c_gpu * velocity_difference_gpu    # Combination of Hooke's law (F = k(x-l0)) and damping (F=cv). Note no minus due to directions of difference vectors
         self.resultant_force_gpu = (resultant_force_gpu + self.weight_arry_gpu) * self.ref_grid_gpu # Increase this timestep's resultant force, with Hooke's law, damping and weight
 
-
     def surface_tension(self):  # Finds force due to cohesive nature of fluids
         grad_x_gpu, grad_y_gpu = cp.gradient(self.pos_grid_gpu[:,:,2])  # Vector gradients, to give vectors parallel to surface
         normal_vec_gpu = cp.zeros_like(self.pos_grid_gpu)
@@ -118,7 +122,6 @@ class CUDA_Calculations:
         div_normal_vec_gpu = cp.gradient(normal_vec_gpu[:, :, 0], axis=0) +cp.gradient(normal_vec_gpu[:, :, 1], axis=1) # Divergence of normal vectors
         curvature_gpu = div_normal_vec_gpu / mod_grad_z_gpu # Find the curvature of the surface in 2 directions
         self.resultant_force_gpu -= self.sigma * curvature_gpu[:, :, cp.newaxis] * normal_vec_gpu # Calculate forces pointing in the direction of the local normals to the surface trying to make the surface as flat as possible
-
 
     @staticmethod # Numba is not friends with classes
     @njit(parallel=True) # Used to accelerate shift grid logic
@@ -152,5 +155,31 @@ class CUDA_Calculations:
             self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
             self.frame += 1
         if debug_verlet:
+            self.pos_grid = cp.asnumpy(self.pos_grid_gpu)   # Allow unit test numpy copies of arrays for easier access
+            self.velocity = cp.asnumpy(self.velocity_gpu)
+
+
+    def euler_richardson(self, coord_change, debug_er=False): # Simulation intergrator, chosen due to high energy conservation in kinematic situations, really Verlocity Verlet, based on https://www2.icp.uni-stuttgart.de/~icp/mediawiki/images/5/54/Skript_sim_methods_I.pdf
+        self.mid_velocity_gpu = self.velocity_gpu
+        if not debug_er:  # Used to specifically unit test Verlet with basic kinematics when debug_verlet = True
+            self.hookes_law(
+                coord_change)  # Force due to Hooke's law, weight and damping, done in this order as to make verlocity verlety work with velocity dependant forces, see https://www2.icp.uni-stuttgart.de/~icp/mediawiki/images/5/54/Skript_sim_methods_I.pdf
+            self.surface_tension()  # Force due to cohesive forces
+            self.acceleration_gpu = self.resultant_force_gpu / self.mass_arry_gpu  # Acceleration at  time + deltaT
+        self.mid_velocity_gpu = self.velocity_gpu + 0.5 * self.acceleration_gpu * self.deltaT    # Midpoint Velocity
+        self.pos_grid_gpu_store = self.pos_grid_gpu
+        self.pos_grid_gpu = self.pos_grid_gpu + 0.5 * self.velocity_gpu * self.deltaT   # Mid position
+        if not debug_er:  # Used to specifically unit test Verlet with basic kinematics when debug_verlet = True
+            self.hookes_law(
+                coord_change)  # Force due to Hooke's law, weight and damping, done in this order as to make verlocity verlety work with velocity dependant forces, see https://www2.icp.uni-stuttgart.de/~icp/mediawiki/images/5/54/Skript_sim_methods_I.pdf
+            self.surface_tension()  # Force due to cohesive forces
+            self.acceleration_gpu = self.resultant_force_gpu / self.mass_arry_gpu  # Acceleration at  time + 0.5 deltaT
+        self.pos_grid_gpu = self.pos_grid_gpu_store + self.mid_velocity_gpu * self.deltaT  # Position at time + deltaT
+        self.velocity_gpu = self.velocity_gpu + self.acceleration_gpu * self.deltaT  # Velocity at time + deltaT
+        if not debug_er:
+            self.kinetics_gpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_gpu[:, :, 0] ** 2 + self.velocity_gpu[:, :, 1] ** 2 + self.velocity_gpu[:, :, 2] ** 2)    # Update energies for this frame
+            self.gpe_gpu[self.frame] = -self.mass_arry * self.g_gpu * self.pos_grid_gpu[:, :, 2]
+            self.frame += 1
+        if debug_er:
             self.pos_grid = cp.asnumpy(self.pos_grid_gpu)   # Allow unit test numpy copies of arrays for easier access
             self.velocity = cp.asnumpy(self.velocity_gpu)

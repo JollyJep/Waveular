@@ -35,7 +35,7 @@ class CPU_Calculations:
              self.energy_cpu (Numpy float64 array outputted as Numpy float64) - Contains all the different energies of all particles in SI units for the number of timesteps that fit as done in mega_pos_grid.
     ----------------------------------------------------------------
     """
-    def __init__(self, pos_grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1, debug=False, RAM=100000):
+    def __init__(self, pos_grid, velocity, acceleration, k, sigma, l0, c, coord_change, ref_grid, divisor, pool_mass=10, g=np.array([0, 0, -9.81], dtype=np.float64), mega_array=True, timestep=0.1, debug=False, RAM=100000, integrator="ER"):
         self.pool_mass = pool_mass
         g_arr = np.zeros(np.shape(pos_grid), dtype=np.float64)
         g_arr[:, :] = g
@@ -68,6 +68,7 @@ class CPU_Calculations:
         self.deltaT = timestep
         self.one_by_deltaT = np.full(np.shape(self.pos_grid_cpu), 1/timestep, dtype=np.float64)
         self.sigma = sigma
+        self.integrator = integrator
 
 
 
@@ -78,7 +79,10 @@ class CPU_Calculations:
         self.frame = 0
         if self.mega_arrays:    # Due to time constraints, only cpu compute is supported (npU/ROCm) hence self.mega_arrays must be True
             for index, array in enumerate(self.mega_pos_grid_cpu):
-                self.verlet(coord_change)
+                if self.integrator == "V":
+                    self.verlet(coord_change)
+                if self.integrator == "ER":
+                    self.euler_richardson(coord_change)
                 self.mega_pos_grid_cpu[index] = self.pos_grid_cpu
             self.energy_cpu = np.array([self.kinetics_cpu, self.gpe_cpu, self.epe_cpu])
             return self.mega_pos_grid_cpu, self.energy_cpu
@@ -153,4 +157,29 @@ class CPU_Calculations:
             self.frame += 1
         if debug_verlet:
             self.pos_grid = self.pos_grid_cpu
+            self.velocity = self.velocity_cpu
+
+
+    def euler_richardson(self, coord_change, debug_er=False): # Simulation intergrator, chosen due to handling of velocity dependant forces Euler-Richardson
+        self.mid_velocity_cpu = self.velocity_cpu
+        if not debug_er:  # Used to specifically unit test Euler-Richardson with basic kinematics when debug_er = True
+            self.hookes_law(
+                coord_change)  # Force due to Hooke's law, weight and damping
+            self.acceleration_cpu = self.resultant_force_cpu / self.mass_arry_cpu  # Acceleration at  time + deltaT
+        self.mid_velocity_cpu = self.velocity_cpu + 0.5 * self.acceleration_cpu * self.deltaT    # Midpoint Velocity
+        self.pos_grid_cpu_store = self.pos_grid_cpu
+        self.pos_grid_cpu = self.pos_grid_cpu + 0.5 * self.velocity_cpu * self.deltaT   # Mid position
+        if not debug_er:  # Used to specifically unit test Euler-Richardson  with basic kinematics when debug_er = True
+            self.hookes_law(
+                coord_change)  # Force due to Hooke's law, weight and damping
+            self.surface_tension()  # Force due to cohesive forces
+            self.acceleration_cpu = self.resultant_force_cpu / self.mass_arry_cpu  # Acceleration at  time + 0.5 deltaT
+        self.pos_grid_cpu = self.pos_grid_cpu_store + self.mid_velocity_cpu * self.deltaT  # Position at time + deltaT
+        self.velocity_cpu = self.velocity_cpu + self.acceleration_cpu * self.deltaT  # Velocity at time + deltaT
+        if not debug_er:
+            self.kinetics_cpu[self.frame] = 0.5 * self.mass_arry * (self.velocity_cpu[:, :, 0] ** 2 + self.velocity_cpu[:, :, 1] ** 2 + self.velocity_cpu[:, :, 2] ** 2)    # Update energies for this frame
+            self.gpe_cpu[self.frame] = -self.mass_arry * self.g_cpu * self.pos_grid_cpu[:, :, 2]
+            self.frame += 1
+        if debug_er:
+            self.pos_grid = self.pos_grid_cpu   # Allow unit test numpy copies of arrays for easier access
             self.velocity = self.velocity_cpu

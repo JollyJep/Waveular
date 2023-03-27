@@ -56,12 +56,12 @@ def calculation_system(grid, pool, run_cuda, mega_arrays):  # Main hub function 
     if settings.CUDA:    # Only use cuda, cpu implementation needs time that I do not have
         calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, settings.k, settings.sigma, l0, settings.c, coord_change, ref_grid,
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
-                                     settings.deltaT, VRAM=settings.VRAM)
+                                     settings.deltaT, VRAM=settings.VRAM, integrator=settings.integrater)
     else:
         calc = cpu.CPU_Calculations(grid.grid, velocity, acceleration, settings.k, settings.sigma, l0, settings.c,
                                      coord_change, ref_grid,
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
-                                     settings.deltaT, RAM=settings.VRAM)  # Code not optimised in the slightest, just uses a direct cpu implementation of gpu code
+                                     settings.deltaT, RAM=settings.VRAM, integrator=settings.integrater)  # Code not optimised in the slightest, just uses a direct cpu implementation of gpu code
     start = time.time()
     index_offset = 0    # For minor_arrays, not enough time to implement
     np.savez_compressed("./Output/0ref",ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
