@@ -27,7 +27,7 @@ pool_mass = 15   # Mass in Kilos
 particle_number = 1 #Find weight for 1 particle
 g = np.array([0, 0, -9.81]) # Standard earth gravitational acceleration
 test_weight, _ = calc.weight(pool_mass, particle_number, g)
-known_weight = np.array([0, 0, -147.15])
+known_weight = np.array([0, 0, -147.15])    # Manually calculated weight
 if np.isclose(test_weight, known_weight, rtol=0.01).all():
     print("Weight calculations nominal")
 else:
