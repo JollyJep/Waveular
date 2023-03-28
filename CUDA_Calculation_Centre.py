@@ -60,7 +60,8 @@ class CUDA_Calculations:
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)   # Defines empty resultant force array
         self.shift_pos = self.quick_shift(cp.asnumpy(self.pos_grid_gpu), coord_change, ref_grid, divisor, cp.asnumpy(self.velocity_gpu))    # Creates shiftable array using Numba accelerated algorithm
-        self.shift_velocity = np.zeros((len(pos_grid) + 2, len(pos_grid[0]) + 2, 3))  # Creates oversized velocity array, to allow for shifting for particles on the edge
+        self.shift_velocity = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[0, 1]) + 2, 3))  # Creates oversized velocity array, to allow for shifting for particles on the edge
+        print(np.shape(self.shift_velocity))
         # Copy arrays to gpu (any cp.array is stored in gpu memory)
         self.shift_pos_gpu = cp.array(self.shift_pos)
         self.shift_velocity_gpu = cp.array(self.shift_velocity)
