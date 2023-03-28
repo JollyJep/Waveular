@@ -63,7 +63,7 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
                                      settings.deltaT, RAM=settings.VRAM, integrator=settings.integrater)  # Code not optimised in the slightest, just uses a direct cpu implementation of gpu code
     start = time.time()
-    np.savez_compressed("./Output/0ref",ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
+    np.savez_compressed("./Output/0ref", ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
     np.savez("./Output/1_time_step", settings.deltaT)
     for x in range(settings.repeats):    # Main loop
         position, energies = calc.runner(coord_change)  #Runs calculations each repeat

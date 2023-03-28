@@ -87,7 +87,7 @@ def data_plot_system(data_export_pos, ref_block_transfer): # Vispy 3d plotting f
         vp.app.run()
 
 
-@njit(parallel=True)    # Dramatically speeds up colour logic
+@njit()    # Dramatically speeds up colour logic
 def quick_colours(data):
     colour_array = []
     for i, _ in enumerate(data[0]): #Loops through particles
