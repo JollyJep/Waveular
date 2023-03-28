@@ -33,7 +33,7 @@ class Settings:
         self.integrater = dataframe[columns[12]][2].upper() # Decides between Verlet and Euler-Richardson
         self.x_scale = float(dataframe[columns[13]][2]) # SI size in x
         self.y_scale = float(dataframe[columns[14]][2]) # SI size in y
-        if str(dataframe[columns[11]][
+        if str(dataframe[columns[15]][
                    2]).lower() == "true":  # Can't convert directly from string to bool, so need some logic
             self.shape = "custom" # If True use custom shape
         else:
