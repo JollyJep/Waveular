@@ -95,15 +95,15 @@ class CPU_Calculations:
         #Define arrays on the cpu
         shift_pos_cpu = self.shift_pos_cpu
         shift_velocity_cpu = self.shift_velocity_cpu
-        shift_pos_cpu[1: len(shift_pos_cpu[0]) - 1, 1:len(shift_pos_cpu[1]) - 1] = self.pos_grid_cpu
-        shift_velocity_cpu[1: len(shift_velocity_cpu[0]) - 1, 1:len(shift_velocity_cpu[1]) - 1] = self.mid_velocity_cpu
+        shift_pos_cpu[1: len(shift_pos_cpu) - 1, 1:len(shift_pos_cpu[0]) - 1] = self.pos_grid_cpu
+        shift_velocity_cpu[1: len(shift_velocity_cpu) - 1, 1:len(shift_velocity_cpu[0]) - 1] = self.mid_velocity_cpu
         resultant_force_cpu = np.zeros(np.shape(self.pos_grid_cpu))
 
         #cpu math
         for repeat in range(8): #Repeat for every neighbour direction. With a bit of work could be cut in half by mirroring forces, however this will increase RAM requirements by around 10-20%.
             shifted_pos_cpu = np.roll(shift_pos_cpu, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))    # Allows particles to psuedo-interact with neighbours, by simply opening neighbouring positional data to particle for Hooke's Law.
             shifted_velocity_cpu = np.roll(shift_velocity_cpu, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))  # Allows particles to psuedo-interact with neighbours, by simply opening neighbouring velocity data to particle damping.
-            vector_difference_cpu = shifted_pos_cpu[1: len(shift_pos_cpu[0]) - 1, 1: len(shift_pos_cpu[1]) - 1] - self.pos_grid_cpu # Position vector from particle to neighbour
+            vector_difference_cpu = shifted_pos_cpu[1: len(shift_pos_cpu) - 1, 1: len(shift_pos_cpu[0]) - 1] - self.pos_grid_cpu # Position vector from particle to neighbour
             velocity_difference_cpu = shifted_velocity_cpu[1: len(shift_velocity_cpu[0]) - 1, 1: len(shift_velocity_cpu) - 1] - self.mid_velocity_cpu   # Velocity vector from particle to neighbour
             modulus_cpu = np.sqrt(vector_difference_cpu[:, :, 0] ** 2 + vector_difference_cpu[:, :, 1] ** 2 + vector_difference_cpu[:, :, 2] ** 2)  # Length in metres of the distance between the particle and its neighbour
             self.epe_cpu[self.frame] += 1/2 * self.k_cpu * (modulus_cpu - self.l0_cpu[repeat]) ** 2 # Add current elastic potential energy to this frame. (Frame only changes after 8 repeats)
@@ -127,11 +127,11 @@ class CPU_Calculations:
     @staticmethod # Numba is not friends with classes
     @njit(parallel=True) # Used to accelerate shift grid logic
     def quick_shift(pos_grid, coord_change, ref_grid, divisor, velocity):
-        shift_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))   # Add a border around the known live and dead particles of fake particles, used for position and velocities, but not simulated
+        shift_pos = np.zeros((len(pos_grid) + 2, len(pos_grid[0]) + 2, 3))   # Add a border around the known live and dead particles of fake particles, used for position and velocities, but not simulated
         for repeat in prange(8):    # All 8 neighbour directions
-            for i in range(len(pos_grid[0])):   # Loop through x and y coordinates
-                for j in range(len(pos_grid[1])):
-                    if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][0] > len(pos_grid[0]) - 1 or j + coord_change[repeat][1] > len(pos_grid[1]) - 1 or not ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]: # If particle when it was a pixel is next to alpha or white or the wall of the png, then
+            for i in range(len(pos_grid)):   # Loop through x and y coordinates
+                for j in range(len(pos_grid[0])):
+                    if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][0] > len(pos_grid) - 1 or j + coord_change[repeat][1] > len(pos_grid[0]) - 1 or not ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]: # If particle when it was a pixel is next to alpha or white or the wall of the png, then
                             shift_pos[i + coord_change[repeat][0] + 1][j + coord_change[repeat][1] + 1] = coord_change[repeat] * divisor + pos_grid[i][j]   # Create the positions of all non simulating pixels, so that the water surface can experience force due to walls or islands.
         return shift_pos
 
