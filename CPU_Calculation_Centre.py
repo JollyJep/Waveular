@@ -54,7 +54,7 @@ class CPU_Calculations:
                                                        g_arr)  # Weight is a constant value and hence can be worked out before time
         self.weight_arry_cpu = np.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_cpu = np.full(np.shape(self.pos_grid_cpu), self.mass_arry, dtype=np.float64)
-        if mega_array and not debug:
+        if not debug:
             mega_pos_grid = np.zeros((int((RAM) // pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3),
                                      dtype=np.float64)  # Defines size of mega_pos_grid, based on memory allocation
             self.mega_pos_grid_cpu = np.array(mega_pos_grid, dtype=np.float64)
@@ -85,18 +85,15 @@ class CPU_Calculations:
         self.epe_cpu = np.zeros(
             (len(self.mega_pos_grid_cpu), len(self.mega_pos_grid_cpu[0]), len(self.mega_pos_grid_cpu[0, 0])))
         self.frame = 0
-        if self.mega_arrays:  # Due to time constraints, only cpu compute is supported (npU/ROCm) hence self.mega_arrays must be True
-            for index, array in enumerate(self.mega_pos_grid_cpu):
-                if self.integrator == "V":
-                    self.verlet(coord_change)
-                if self.integrator == "ER":
-                    self.euler_richardson(coord_change)
-                self.mega_pos_grid_cpu[index] = self.pos_grid_cpu
-            self.energy_cpu = np.array([self.kinetics_cpu, self.gpe_cpu, self.epe_cpu])
-            return self.mega_pos_grid_cpu, self.energy_cpu
-        else:
-            self.verlet(coord_change)
-            return
+        for index, array in enumerate(self.mega_pos_grid_cpu):  # Decides on integrator to use
+            if self.integrator == "V":
+                self.verlet(coord_change)
+            if self.integrator == "ER":
+                self.euler_richardson(coord_change)
+            self.mega_pos_grid_cpu[index] = self.pos_grid_cpu
+        self.energy_cpu = np.array([self.kinetics_cpu, self.gpe_cpu, self.epe_cpu])
+        return self.mega_pos_grid_cpu, self.energy_cpu
+
 
     def hookes_law(self, coord_change):
         # Define arrays on the cpu
