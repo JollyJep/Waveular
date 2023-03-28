@@ -51,7 +51,7 @@ class CUDA_Calculations:
         self.weight_arry, self.mass_arry = self.weight(self.pool_mass, len(pos_grid[0]) * len(pos_grid[1]), g_arr)  #Weight is a constant value and hence can be worked out before time
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_gpu = cp.full(cp.shape(self.pos_grid_gpu), self.mass_arry, dtype=np.float64)
-        if mega_array and not debug:
+        if not debug:
             mega_pos_grid = np.zeros((int((VRAM)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)    #Defines size of mega_pos_grid, based on memory allocation
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         elif mega_array and debug:
@@ -78,18 +78,15 @@ class CUDA_Calculations:
         self.gpe_gpu = cp.zeros((len(self.mega_pos_grid_gpu), len(self.mega_pos_grid_gpu[0]), len(self.mega_pos_grid_gpu[0, 0])))
         self.epe_gpu = cp.zeros((len(self.mega_pos_grid_gpu), len(self.mega_pos_grid_gpu[0]), len(self.mega_pos_grid_gpu[0, 0])))
         self.frame = 0
-        if self.mega_arrays:    # Due to time constraints, only gpu compute is supported (CUDA/ROCm) hence self.mega_arrays must be True
-            for index, array in enumerate(self.mega_pos_grid_gpu):
-                if self.integrator == "V":
-                    self.verlet(coord_change)
-                elif self.integrator == "ER":
-                    self.euler_richardson(coord_change)
-                self.mega_pos_grid_gpu[index] = self.pos_grid_gpu
-            self.energy_gpu = cp.array([self.kinetics_gpu, self.gpe_gpu, self.epe_gpu])
-            return cp.asnumpy(self.mega_pos_grid_gpu), cp.asnumpy(self.energy_gpu)
-        else:
-            self.verlet(coord_change)
-            return
+        for index, array in enumerate(self.mega_pos_grid_gpu):  # Minor arrays now work
+            if self.integrator == "V":
+                self.verlet(coord_change)
+            elif self.integrator == "ER":
+                self.euler_richardson(coord_change)
+            self.mega_pos_grid_gpu[index] = self.pos_grid_gpu
+        self.energy_gpu = cp.array([self.kinetics_gpu, self.gpe_gpu, self.epe_gpu])
+        return cp.asnumpy(self.mega_pos_grid_gpu), cp.asnumpy(self.energy_gpu)
+
 
 
     def hookes_law(self, coord_change):

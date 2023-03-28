@@ -52,7 +52,7 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
     if settings.mega_arrays == False:
-        settings.VRAM = 2 * np.nbytes(grid.grid)
+        settings.VRAM = 2 * int(grid.grid.nbytes)
     if settings.CUDA:    # Only use cuda, cpu implementation needs time that I do not have
         calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, settings.k, settings.sigma, l0, settings.c, coord_change, ref_grid,
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
