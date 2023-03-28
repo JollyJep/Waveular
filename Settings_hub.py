@@ -6,7 +6,7 @@ class Settings:
     """
     ----------------------------------------------------------------
     Description:
-    Settings loads an excel file containing system attributes.
+    Settings loads an Excel file containing system attributes.
     ----------------------------------------------------------------
     """
 
@@ -30,6 +30,11 @@ class Settings:
             self.CUDA = True # If True use gpu
         else:
             self.CUDA = False
-        self.integrater = dataframe[columns[12]][2].upper()
-        self.x_scale = float(dataframe[columns[13]][2])
-        self.y_scale = float(dataframe[columns[14]][2])
+        self.integrater = dataframe[columns[12]][2].upper() # Decides between Verlet and Euler-Richardson
+        self.x_scale = float(dataframe[columns[13]][2]) # SI size in x
+        self.y_scale = float(dataframe[columns[14]][2]) # SI size in y
+        if str(dataframe[columns[11]][
+                   2]).lower() == "true":  # Can't convert directly from string to bool, so need some logic
+            self.shape = "custom" # If True use custom shape
+        else:
+            self.shape = "circular"

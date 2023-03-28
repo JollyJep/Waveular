@@ -84,5 +84,5 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
 if __name__ == "__main__":
     settings = Settings_hub.Settings()
     settings.read_settings()
-    Pool_boundaries = Pool_Simulation_Setup(x_dim=settings.x_scale, y_dim=settings.y_scale)
+    Pool_boundaries = Pool_Simulation_Setup(shape=settings.shape, x_dim=settings.x_scale, y_dim=settings.y_scale)
     grid_setup(Pool_boundaries, settings)
