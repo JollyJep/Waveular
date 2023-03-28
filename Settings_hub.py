@@ -17,7 +17,7 @@ class Settings:
         self.sigma = float(dataframe[columns[3]][2]) # Surface tension coefficient
         self.c = float(dataframe[columns[4]][2]) # Damping coefficient
         self.pool_mass = float(dataframe[columns[5]][2]) # Mass of whole pool surface
-        if str(dataframe[columns[6]][ 2]).lower() == "true": # Can't convert directly from string to bool, so need some logic
+        if str(dataframe[columns[6]][2]).lower() == "true": # Can't convert directly from string to bool, so need some logic
             self.mega_arrays = True # Use mega_arrays (arrays used to store many frames at once) needs to be true for now as minor arrays don't work
         else:
             self.mega_arrays = False
@@ -33,7 +33,7 @@ class Settings:
         self.integrater = dataframe[columns[12]][2].upper() # Decides between Verlet and Euler-Richardson
         self.x_scale = float(dataframe[columns[13]][2]) # SI size in x
         self.y_scale = float(dataframe[columns[14]][2]) # SI size in y
-        if str(dataframe[columns[11]][
+        if str(dataframe[columns[15]][
                    2]).lower() == "true":  # Can't convert directly from string to bool, so need some logic
             self.shape = "custom" # If True use custom shape
         else:

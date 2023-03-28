@@ -48,20 +48,19 @@ class CUDA_Calculations:
         self.k_gpu = k
         self.l0_gpu = cp.array(l0, np.float64)
         self.c_gpu = cp.full(cp.shape(self.pos_grid_gpu), c, dtype=np.float64)
-        self.weight_arry, self.mass_arry = self.weight(self.pool_mass, len(pos_grid) * len(pos_grid[0]), g_arr)  #Weight is a constant value and hence can be worked out before time
+        self.weight_arry, self.mass_arry = self.weight(self.pool_mass, len(pos_grid[0]) * len(pos_grid[1]), g_arr)  #Weight is a constant value and hence can be worked out before time
         self.weight_arry_gpu = cp.array(self.weight_arry, dtype=np.float64)
         self.mass_arry_gpu = cp.full(cp.shape(self.pos_grid_gpu), self.mass_arry, dtype=np.float64)
         if mega_array and not debug:
-            mega_pos_grid = np.zeros((int((VRAM)//pos_grid.nbytes), len(pos_grid), len(pos_grid[0]), 3), dtype=np.float64)    #Defines size of mega_pos_grid, based on memory allocation
+            mega_pos_grid = np.zeros((int((VRAM)//pos_grid.nbytes), len(pos_grid[0]), len(pos_grid[1]), 3), dtype=np.float64)    #Defines size of mega_pos_grid, based on memory allocation
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         elif mega_array and debug:
-            mega_pos_grid = np.zeros((1, len(pos_grid), len(pos_grid[0]), 3),dtype=np.float64)
+            mega_pos_grid = np.zeros((1, len(pos_grid[0]), len(pos_grid[1]), 3),dtype=np.float64)
             self.mega_pos_grid_gpu = cp.array(mega_pos_grid, dtype=np.float64)
         self.mega_arrays = mega_array
         self.resultant_force_gpu = cp.zeros(np.shape(pos_grid), dtype=np.float64)   # Defines empty resultant force array
         self.shift_pos = self.quick_shift(cp.asnumpy(self.pos_grid_gpu), coord_change, ref_grid, divisor, cp.asnumpy(self.velocity_gpu))    # Creates shiftable array using Numba accelerated algorithm
-        self.shift_velocity = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[0, 1]) + 2, 3))  # Creates oversized velocity array, to allow for shifting for particles on the edge
-        print(np.shape(self.shift_velocity))
+        self.shift_velocity = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))  # Creates oversized velocity array, to allow for shifting for particles on the edge
         # Copy arrays to gpu (any cp.array is stored in gpu memory)
         self.shift_pos_gpu = cp.array(self.shift_pos)
         self.shift_velocity_gpu = cp.array(self.shift_velocity)
@@ -97,15 +96,15 @@ class CUDA_Calculations:
         #Define arrays on the gpu
         shift_pos_gpu = self.shift_pos_gpu
         shift_velocity_gpu = self.shift_velocity_gpu
-        shift_pos_gpu[1: len(shift_pos_gpu) - 1, 1:len(shift_pos_gpu[0]) - 1] = self.pos_grid_gpu
-        shift_velocity_gpu[1: len(shift_velocity_gpu) - 1, 1:len(shift_velocity_gpu[0]) - 1] = self.mid_velocity_gpu
+        shift_pos_gpu[1: len(shift_pos_gpu[0]) - 1, 1:len(shift_pos_gpu[1]) - 1] = self.pos_grid_gpu
+        shift_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1:len(shift_velocity_gpu[1]) - 1] = self.mid_velocity_gpu
         resultant_force_gpu = cp.zeros(cp.shape(self.pos_grid_gpu))
 
         #Gpu math
         for repeat in range(8): #Repeat for every neighbour direction. With a bit of work could be cut in half by mirroring forces, however this will increase VRAM requirements by around 10-20%.
             shifted_pos_gpu = cp.roll(shift_pos_gpu, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))    # Allows particles to psuedo-interact with neighbours, by simply opening neighbouring positional data to particle for Hooke's Law.
             shifted_velocity_gpu = cp.roll(shift_velocity_gpu, (coord_change[repeat][0], coord_change[repeat][1]), (0, 1))  # Allows particles to psuedo-interact with neighbours, by simply opening neighbouring velocity data to particle damping.
-            vector_difference_gpu = shifted_pos_gpu[1: len(shift_pos_gpu) - 1, 1: len(shift_pos_gpu[0]) - 1] - self.pos_grid_gpu # Position vector from particle to neighbour
+            vector_difference_gpu = shifted_pos_gpu[1: len(shift_pos_gpu[0]) - 1, 1: len(shift_pos_gpu[1]) - 1] - self.pos_grid_gpu # Position vector from particle to neighbour
             velocity_difference_gpu = shifted_velocity_gpu[1: len(shift_velocity_gpu[0]) - 1, 1: len(shift_velocity_gpu) - 1] - self.mid_velocity_gpu   # Velocity vector from particle to neighbour
             modulus_gpu = cp.sqrt(vector_difference_gpu[:, :, 0] ** 2 + vector_difference_gpu[:, :, 1] ** 2 + vector_difference_gpu[:, :, 2] ** 2)  # Length in metres of the distance between the particle and its neighbour
             self.epe_gpu[self.frame] += 1/2 * self.k_gpu * (modulus_gpu - self.l0_gpu[repeat]) ** 2 # Add current elastic potential energy to this frame. (Frame only changes after 8 repeats)
@@ -127,11 +126,11 @@ class CUDA_Calculations:
     @staticmethod # Numba is not friends with classes
     @njit(parallel=True) # Used to accelerate shift grid logic
     def quick_shift(pos_grid, coord_change, ref_grid, divisor, velocity):
-        shift_pos = np.zeros((len(pos_grid) + 2, len(pos_grid[0]) + 2, 3))   # Add a border around the known live and dead particles of fake particles, used for position and velocities, but not simulated
+        shift_pos = np.zeros((len(pos_grid[0]) + 2, len(pos_grid[1]) + 2, 3))   # Add a border around the known live and dead particles of fake particles, used for position and velocities, but not simulated
         for repeat in prange(8):    # All 8 neighbour directions
-            for i in range(len(pos_grid)):   # Loop through x and y coordinates
-                for j in range(len(pos_grid[0])):
-                    if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][0] > len(pos_grid) - 1 or j + coord_change[repeat][1] > len(pos_grid[0]) - 1 or not ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]: # If particle when it was a pixel is next to alpha or white or the wall of the png, then
+            for i in range(len(pos_grid[0])):   # Loop through x and y coordinates
+                for j in range(len(pos_grid[1])):
+                    if i + coord_change[repeat][0] < 0 or j + coord_change[repeat][1] < 0 or i + coord_change[repeat][0] > len(pos_grid[0]) - 1 or j + coord_change[repeat][1] > len(pos_grid[1]) - 1 or not ref_grid[i + coord_change[repeat][0]][j + coord_change[repeat][1]]: # If particle when it was a pixel is next to alpha or white or the wall of the png, then
                             shift_pos[i + coord_change[repeat][0] + 1][j + coord_change[repeat][1] + 1] = coord_change[repeat] * divisor + pos_grid[i][j]   # Create the positions of all non simulating pixels, so that the water surface can experience force due to walls or islands.
         return shift_pos
 
