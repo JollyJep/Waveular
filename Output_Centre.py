@@ -139,6 +139,17 @@ def energy_plotter(data_export_eng, time_swap): # Uses Matplotlib to plot all en
     plotting = True
     frames = np.zeros(1)
     start = True
+    plt.tick_params(bottom=True, top=True, left=True, right=True, direction='in')
+    plt.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False, direction='in')
+    plt.rcParams['text.usetex'] = True
+    plt.rcParams['font.size'] = '16'
+    fig = plt.figure(figsize=(16, 9))
+    ax = fig.add_subplot()
+    ax.tick_params(bottom=True, top=True, left=True, right=True, direction='in')
+    ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False, direction='in')
+    for label in (ax.get_xticklabels() + ax.get_yticklabels()):
+        label.set_fontsize(16)
+
     while plotting:
         if start: # For first loop, collect the timestep from queue
             start = False
@@ -150,17 +161,17 @@ def energy_plotter(data_export_eng, time_swap): # Uses Matplotlib to plot all en
             epe_gpu = cp.sum(all_energies[2], axis=(1, 2))
             frames = np.linspace(max(frames), (len(kinetics_gpu) + max(frames)-1), len(kinetics_gpu))   # The current set of times to plot on the x axis
             if frames[0] == 0:  # Plot first data file with labels
-                plt.plot(frames * deltaT, cp.asnumpy(kinetics_gpu), label="Kinetic Energy", color="red", ls=(0, (3, 10, 1, 10, 1, 10)))
-                plt.plot(frames * deltaT, cp.asnumpy(gpe_gpu), label="Gravitational Potential Energy", color="lightblue", ls="--")
-                plt.plot(frames * deltaT, cp.asnumpy(epe_gpu), label="Elastic Potential Energy", color="darkblue", ls="dotted")
-                plt.plot(frames * deltaT, cp.asnumpy(epe_gpu + gpe_gpu), label="Potential Energy", color="blue", ls="dashdot")
-                plt.plot(frames * deltaT, cp.asnumpy(kinetics_gpu + gpe_gpu + epe_gpu), label="Total Energy", color="purple")
+                ax.plot(frames * deltaT, cp.asnumpy(kinetics_gpu), label="Kinetic Energy", color="red", ls=(0, (3, 10, 1, 10, 1, 10)))
+                ax.plot(frames * deltaT, cp.asnumpy(gpe_gpu), label="Gravitational Potential Energy", color="lightblue", ls="--")
+                ax.plot(frames * deltaT, cp.asnumpy(epe_gpu), label="Elastic Potential Energy", color="darkblue", ls="dotted")
+                ax.plot(frames * deltaT, cp.asnumpy(epe_gpu + gpe_gpu), label="Potential Energy", color="blue", ls="dashdot")
+                ax.plot(frames * deltaT, cp.asnumpy(kinetics_gpu + gpe_gpu + epe_gpu), label="Total Energy", color="purple")
             else:   # In blocks of data, plot each data file
-                plt.plot(frames * deltaT, cp.asnumpy(kinetics_gpu), color="red", ls=(0, (3, 10, 1, 10, 1, 10)))
-                plt.plot(frames * deltaT, cp.asnumpy(gpe_gpu), color="lightblue", ls="--")
-                plt.plot(frames * deltaT, cp.asnumpy(epe_gpu), color="darkblue", linestyle="dotted")
-                plt.plot(frames * deltaT, cp.asnumpy(epe_gpu + gpe_gpu), color="blue", ls="dashdot")
-                plt.plot(frames * deltaT, cp.asnumpy(kinetics_gpu + gpe_gpu + epe_gpu), color="purple")
+                ax.plot(frames * deltaT, cp.asnumpy(kinetics_gpu), color="red", ls=(0, (3, 10, 1, 10, 1, 10)))
+                ax.plot(frames * deltaT, cp.asnumpy(gpe_gpu), color="lightblue", ls="--")
+                ax.plot(frames * deltaT, cp.asnumpy(epe_gpu), color="darkblue", linestyle="dotted")
+                ax.plot(frames * deltaT, cp.asnumpy(epe_gpu + gpe_gpu), color="blue", ls="dashdot")
+                ax.plot(frames * deltaT, cp.asnumpy(kinetics_gpu + gpe_gpu + epe_gpu), color="purple")
         else:   # At the end of all data streaming, launch plot
             plt.legend()
             plt.ylabel("Energy/ J", fontsize=20)

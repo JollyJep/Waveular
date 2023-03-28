@@ -51,6 +51,8 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
     velocity = np.zeros(np.shape(grid.grid), dtype=np.float64)  # Create empty velocity and acceleration arrays
     acceleration = np.zeros(np.shape(grid.grid), dtype=np.float64)
     ref_grid = grid.ref_grid
+    if settings.mega_arrays == False:
+        settings.VRAM = 2 * np.nbytes(grid.grid)
     if settings.CUDA:    # Only use cuda, cpu implementation needs time that I do not have
         calc = ccc.CUDA_Calculations(grid.grid, velocity, acceleration, settings.k, settings.sigma, l0, settings.c, coord_change, ref_grid,
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
@@ -61,7 +63,6 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
                                      divisor, settings.pool_mass, settings.g, settings.mega_arrays,
                                      settings.deltaT, RAM=settings.VRAM, integrator=settings.integrater)  # Code not optimised in the slightest, just uses a direct cpu implementation of gpu code
     start = time.time()
-    index_offset = 0    # For minor_arrays, not enough time to implement
     np.savez_compressed("./Output/0ref",ref_grid)  # Save extra simulation information for plotting, 0 and 1 before file name to make sure files are opened first
     np.savez("./Output/1_time_step", settings.deltaT)
     for x in range(settings.repeats):    # Main loop
@@ -73,22 +74,11 @@ def calculation_system(grid, pool, run_cuda, mega_arrays, settings):  # Main hub
         if mega_arrays:     # Saves all data to disk to use later. Saves in repeat chunks, which is good for both RAM management and power failure/crash data loss mitigation
             np.savez_compressed("./Output/mega_array_pos_" + number, position)
             np.savez_compressed("./Output/mega_array_eng_" + number, energies)
-        else:   # Needs more work for minor_arrays to work
-            if x == 0:
-                data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)
-                data_output[x] = position
-            elif x + 1 % 25 == 0:
-                data_output[x - index_offset] = position
-                np.savez_compressed("./Output/mini_dat_" + str(index_offset / 25), position)
-                data_output = np.full((25, len(grid.grid[0]), len(grid.grid[0][0]), 3), np.nan)
-                index_offset += 25
-            else:
-                data_output[x - index_offset] = position
-    if not mega_arrays: # Minor_arrays
-        if data_output[0][0][0] != np.nan:
-            np.savez_compressed("./Output/mini_dat_" + str(index_offset / 25), position)
+        else:   # Saves data for mini arrays
+            np.savez_compressed("./Output/mini_array_pos_" + number, position)
+            np.savez_compressed("./Output/mini_array_eng_" + number, energies)
 
-    print(time.time() - start)  # Cuda performance diagnostics
+    print(time.time() - start)  # Time to run all calculations in seconds
 
 
 if __name__ == "__main__":
