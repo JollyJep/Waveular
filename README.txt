@@ -11,8 +11,7 @@ CUDA_Calculation_Centre.py	#Handles all calculations if GPU is GPU Compute = Tru
 Grid_Creation_System.py		#Converts image to particle grid
 Pool_Simulation.py		#Opens pool shape png image
 Settings_hub.py			#Opens Settings.xlsx and outputs setting values to rest of code
-Surface_Waves_Core.py		#Main python code, runs all other connected python files and saves data. WARNING it may take time to render many particles over lots of timesteps and this
-					#script only tells you when you are finished with a real world run time of the simulation. Data will be saved anyway even if there is a crash
+Surface_Waves_Core.py		#Main python code, runs all other connected python files and saves data. WARNING it may take time to render many particles over lots of timesteps and this script only tells you when you are finished with a real world run time of the simulation. Data will be saved anyway even if there is a crash
 
 ----------------------------------------------------------------
 Graphing Script (Manually run)
@@ -26,7 +25,7 @@ Unit Tests (All manually run)
 
 Euler-Richardson Unit Test.py		#Tests Euler-Richardson function
 Force unit test.py			#Tests Hooke's law calculations
-Png unit test.py				#Tests particle grid against png
+Png unit test.py			#Tests particle grid against png
 Quick Shift Unit test.py		#Tests quick shift function				
 Verlet Unit Test.py			#Tests velocity Verlet function
 Weight Unit test.py			#Tests weight calculation
